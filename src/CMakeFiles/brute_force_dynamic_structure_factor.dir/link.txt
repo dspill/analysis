@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -O3 -DNDEBUG   CMakeFiles/brute_force_dynamic_structure_factor.dir/brute_force_dynamic_structure_factor.cpp.o  -o ../bin/brute_force_dynamic_structure_factor 

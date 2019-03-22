@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -g -O0   CMakeFiles/minkowski.dir/minkowski.cpp.o  -o bin/minkowski 

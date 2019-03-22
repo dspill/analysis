@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -g -O0   CMakeFiles/test_vector.dir/test_vector.cpp.o  -o bin/test_vector 

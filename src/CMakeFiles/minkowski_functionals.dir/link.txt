@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -O3 -DNDEBUG   CMakeFiles/minkowski_functionals.dir/minkowski_functionals.cpp.o  -o ../bin/minkowski_functionals 

@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -O3 -DNDEBUG   CMakeFiles/correlation_function.dir/correlation_function.cpp.o  -o ../bin/correlation_function 

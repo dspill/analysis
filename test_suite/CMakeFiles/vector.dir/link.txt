@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -g -O0   CMakeFiles/vector.dir/vector.cpp.o  -o bin/vector 

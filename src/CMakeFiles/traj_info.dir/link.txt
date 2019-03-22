@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -O3 -DNDEBUG   CMakeFiles/traj_info.dir/traj_info.cpp.o  -o ../bin/traj_info 

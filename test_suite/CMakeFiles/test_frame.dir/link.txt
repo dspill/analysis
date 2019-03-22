@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -g -O0   CMakeFiles/test_frame.dir/test_frame.cpp.o  -o bin/test_frame 
