@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -O3 -DNDEBUG   CMakeFiles/latticeize_configuration.dir/latticeize_configuration.cpp.o  -o ../bin/latticeize_configuration 

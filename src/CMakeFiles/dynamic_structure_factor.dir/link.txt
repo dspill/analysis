@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -O3 -DNDEBUG   CMakeFiles/dynamic_structure_factor.dir/dynamic_structure_factor.cpp.o  -o ../bin/dynamic_structure_factor -lfftw3 

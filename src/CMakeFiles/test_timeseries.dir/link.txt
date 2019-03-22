@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic   CMakeFiles/test_timeseries.dir/test_timeseries.cpp.o  -o bin/test_timeseries 

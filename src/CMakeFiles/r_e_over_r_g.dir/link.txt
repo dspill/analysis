@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wall -Wextra -Wshadow -pedantic -O3 -DNDEBUG   CMakeFiles/r_e_over_r_g.dir/r_e_over_r_g.cpp.o  -o ../bin/r_e_over_r_g 
