@@ -1,0 +1,6 @@
+analysis:
+  script:
+    - mkdir build
+    - cmake .
+    - make all test
+
