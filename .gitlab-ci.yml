@@ -1,10 +1,7 @@
-image: gcc
-before_script:
-       - apt-get update --yes
-       - apt-get install --yes cmake libfftw3-dev
-
-build:
+test:
   script:
+    - apt-get update --yes
+    - apt-get install --yes cmake libfftw3-dev
     - cmake .
     - make all test
 
