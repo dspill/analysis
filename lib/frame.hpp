@@ -1596,17 +1596,17 @@ double mean_structure_factor_old(const Frame & frame, const double q,
  * interpreted as 'black'.
  */
 template<typename T>
-std::vector<double> minkowski_functionals(const T input, 
+std::array<double, 6> minkowski_functionals(const T input, 
         const size_t lattice_size, const double threshold = 0., 
         const char norm='n', const bool natural_units=false)
 {
     if(typeid(T) != typeid(Frame) && typeid(T) != typeid(const char *))
         throw std::runtime_error("Incompatible input type.\n");
 
-    std::vector<double> result{0., 0., 0., 0., 0., 0.};
+    std::array<double, 6> result{0., 0., 0., 0., 0., 0.};
 
     // values of the MFs for the 22 possible configurations
-    static const std::vector<std::vector<double>> results{
+    static const std::array<std::array<double, 6>, 22> results{{
         {0., 0., 0., 0., 0., 0.},
             {1., 3., 3., 3., 1., 1.},
             {2., 4., 2., 2., 0., 0.},
@@ -1629,10 +1629,10 @@ std::vector<double> minkowski_functionals(const T input,
             {6., 4., -2., -2., 0., 0.},
             {7., 3., -3., -3., 1., 1.},
             {8., 0., 0., 0., 0., 0.}
-    };
+    }};
 
     // associate the 256 possible neighborhoods to the 22 configurations
-    static const std::vector<const std::vector<double> * > pointers{
+    static const std::array<const std::array<double, 6> *, 256> pointers{
         &results[0],
         &results[1],
         &results[1],

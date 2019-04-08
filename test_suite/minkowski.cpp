@@ -12,7 +12,7 @@ using namespace std;
 int main()
 {
     {
-        vector<double> mfs, temp;
+        array<double, 6> mfs, temp;
 
         // N'
         Frame frame(Real3D(2));
@@ -567,4 +567,5 @@ int main()
 
     }
     return 0;
+
 }
