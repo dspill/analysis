@@ -95,7 +95,7 @@ class Timeseries
             std::getline(stream, str);
             std::vector<double> line;
 
-            for(size_t i; i < offset; ++i)
+            for(size_t i = 0; i < offset; ++i)
             {
                 while(str[0] == '#') std::getline(stream, str); // skip comments
                 std::getline(stream, str);

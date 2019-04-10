@@ -10,66 +10,6 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-    //{
-        //vector<double> mfs, temp;
-
-        //// calculate mfs for a sphere
-        //{
-            //Real3D r;
-
-            //cout << "R\t\t";
-            //cout << "V\t\t";
-            //cout << "A\t\t";
-            //cout << "C\t\t";
-            //cout << "C\t\t";
-            //cout << "EPC\t\t";
-            //cout << "EPC\n";
-
-            //for(size_t radius = 10; radius < 80; radius += 10)
-            //{
-            //size_t size = 3*radius;
-            //cout << scientific;
-
-            //Frame frame{Real3D((double) size)};
-            //frame.make_sphere(radius);
-            //auto mfs = minkowski_functionals(frame, size, .5, 'c');
-
-            //cout << "sphere:\n";
-            //cout <<  radius << "\t";
-            //cout << (mfs[0] / (4./3.*M_PI*pow(radius,3))) << "\t";
-            //cout << (mfs[1] / (4*M_PI*radius*radius)) << "\t";
-            //cout << (mfs[2] / (4.*M_PI*radius)) << "\t";
-            //cout << (mfs[3] / (4.*M_PI*radius)) << "\t";
-            //cout << mfs[4] << "\t";
-            //cout << mfs[5] << "\n";
-
-            ////frame.write_lattice("sphere_on_a_lattice.dat", size);
-            ////frame.write_xyz("sphere_in_a_box.xyz");
-
-
-            //frame.clear();
-            //frame.set_box(Real3D((double) size));
-            //frame.make_cube(radius);
-            //mfs = minkowski_functionals(frame, size, .5, 'c');
-
-
-            //cout << "cube:  \n";
-            //cout <<  radius << "\t";
-            //cout << (mfs[0] / pow(radius,3)) << "\t";
-            //cout << (mfs[1] / (6*radius*radius)) << "\t";
-            //cout << (mfs[2] / (3.*M_PI*radius)) << "\t";
-            //cout << (mfs[3] / (3.*M_PI*radius)) << "\t";
-            //cout << mfs[4] << "\t";
-            //cout << mfs[5] << "\n";
-
-            ////frame.write_lattice("cube_on_a_lattice.dat", size);
-            ////frame.write_xyz("cube_in_a_box.xyz");
-            //}
-
-
-        //}
-    //}
-    //
     if(argc < 2 || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)
     {
         cout << "Usage: " << '\n';
@@ -93,7 +33,6 @@ int main(int argc, char **argv)
     const char *infile  = argv[1];
     // outfile
     char outfile[256];
-
 
     // frames to skip at the beginning
     double threshold    = atof(couf::parse_arguments(argc, argv, "--thr"));
@@ -134,7 +73,8 @@ int main(int argc, char **argv)
     {
         cout << "reading frame " << traj.index() << '\n';
         /* compute minkowski functionals */
-        vector<double> mfs = minkowski_functionals(*traj, lattice_size, threshold, 's', natural_units);
+        array<double, 6> mfs =
+            minkowski_functionals(*traj, lattice_size, threshold, 's', natural_units);
 
         /* file output */
         stream << std::fixed;
