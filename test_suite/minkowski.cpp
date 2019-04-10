@@ -542,22 +542,12 @@ int main()
         frame.make_sphere(radius);
         auto mfs = minkowski_functionals(frame, size, .5, 's');
 
-
-        couf::my_assert(abs(mfs[0] / (4./3.*M_PI*pow(radius,3)) - 1.) < thr);
-        couf::my_assert(abs(mfs[1] / (4*M_PI*radius*radius) - 1.) < thr);
-        couf::my_assert(abs(mfs[2] / (4.*M_PI*radius) - 1.) < thr);
-        couf::my_assert(abs(mfs[3] / (4.*M_PI*radius) - 1.) < thr);
-        couf::my_assert(abs(mfs[4] - 1.) < thr);
-        couf::my_assert(abs(mfs[5] - 1.) < thr);
-
-
         // cube
         thr = 10e-8;
         frame.clear();
         frame.set_box(Real3D((double) size));
         frame.make_cube(radius);
         mfs = minkowski_functionals(frame, size, .5, 'c');
-
         couf::my_assert(abs(mfs[0] / pow(radius,3) - 1.) < thr);
         couf::my_assert(abs(mfs[1] / (6*radius*radius) - 1.) < thr);
         couf::my_assert(abs(mfs[2] / (3.*M_PI*radius) - 1.) < thr);
@@ -565,6 +555,35 @@ int main()
         couf::my_assert(abs(mfs[4] - 1.) < thr);
         couf::my_assert(abs(mfs[5] - 1.) < thr);
 
+        // shell output
+        if(false)
+        {
+            frame.clear();
+            frame.set_box(Real3D((double) size));
+            frame.make_sphere(radius);
+            mfs = minkowski_functionals(frame, size, .5, 'c');
+
+            cout << "sphere:\n";
+            cout << (abs(mfs[0] / (4./3.*M_PI*pow(radius,3)))) << '\n';
+            cout << (abs(mfs[1] / (4*M_PI*radius*radius))) << '\n';
+            cout << (abs(mfs[2] / (4.*M_PI*radius))) << '\n';
+            cout << (abs(mfs[3] / (4.*M_PI*radius))) << '\n';
+            cout << (abs(mfs[4])) << '\n';
+            cout << (abs(mfs[5])) << '\n';
+
+            frame.clear();
+            frame.set_box(Real3D((double) size));
+            frame.make_cube(radius);
+            mfs = minkowski_functionals(frame, size, .5, 'c');
+
+            cout << "cube:\n";
+            cout << (abs(mfs[0] / pow(radius,3))) << '\n';
+            cout << (abs(mfs[1] / (6*radius*radius))) << '\n';
+            cout << (abs(mfs[2] / (3.*M_PI*radius))) << '\n';
+            cout << (abs(mfs[3] / (3.*M_PI*radius))) << '\n';
+            cout << (abs(mfs[4])) << '\n';
+            cout << (abs(mfs[5])) << '\n';
+        }
     }
     return 0;
 

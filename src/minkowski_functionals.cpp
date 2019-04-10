@@ -17,11 +17,16 @@ int main(int argc, char **argv)
         cout << "  <char*> infile" << '\n';
         cout << "  --of     <char*>  (opt) outfile name" << '\n';
         cout << "  --thr    <double> (opt) threshold" << '\n';
-        cout << "  --cg     <int>    (opt) factor by which the lattice is coarse grained" << '\n';
-        cout << "  --fg     <int>    (opt) factor by which the lattice is fine grained" << '\n';
-        cout << "  --step   <int>    (opt) only evaluate every step-th frame" << '\n';
-        cout << "  --offset <int>    (opt) number of lines to skip at the beginning" << '\n';
-        cout << "  --max    <int>    (opt) highest number of frame to read" << '\n';
+        cout << "  --cg     <int>    (opt) factor by which the lattice is "
+            "coarse grained" << '\n';
+        cout << "  --fg     <int>    (opt) factor by which the lattice is "
+            "fine grained" << '\n';
+        cout << "  --step   <int>    (opt) only evaluate every step-th frame"
+            << '\n';
+        cout << "  --offset <int>    (opt) number of lines to skip at the "
+            "beginning" << '\n';
+        cout << "  --max    <int>    (opt) highest number of frame to read" 
+            << '\n';
         cout << "  --exp    <double>\n";
         cout << "  --natural_units <bool>\n";
         exit(1);
@@ -75,8 +80,8 @@ int main(int argc, char **argv)
     {
         cout << "reading frame " << traj.index() << '\n';
         /* compute minkowski functionals */
-        array<double, 6> mfs =
-            minkowski_functionals(*traj, lattice_size, threshold, 's', natural_units);
+        array<double, 6> mfs = minkowski_functionals(
+                *traj, lattice_size, threshold, 'c', natural_units);
 
         /* file output */
         stream << std::fixed;
