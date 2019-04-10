@@ -1,4 +1,5 @@
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin")
+file(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 set(programs 
     traj_info

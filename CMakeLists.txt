@@ -18,9 +18,8 @@ add_subdirectory(test_suite)
 
 enable_testing()
 set(CTEST_OUTPUT_ON_FAILURE 1)
-set(testdir test_suite)
 set(testbin test_suite/bin)
-#set(test_programs "frame;minkowski;molecule;timeseries;trajectory;vector")
+file(MAKE_DIRECTORY ${testbin})
 set(test_programs frame minkowski molecule timeseries trajectory vector)
 
 foreach(tprog ${test_programs})
