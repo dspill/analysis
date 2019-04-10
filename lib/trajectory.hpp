@@ -19,7 +19,7 @@ class Trajectory
         size_t _particles_per_molecule{0}; //!< number of particles in one molecule
         Frame _frame; //!< current configuration
         double _timestep{0.}; //!< timestep between consecutive frames
-        size_t _frames_read{0};
+        mutable size_t _frames_read{0};
 
         /**
          * Advances the trajectory by one frame without reading the new frame 
@@ -61,10 +61,11 @@ class Trajectory
             _index(0),
             _particles_per_molecule(particles_per_molecule),
             _frame(Frame(_stream, particles_per_molecule)),
-            _timestep(0.) 
-    {
-        advance(offset);
-    }
+            _timestep(0.),
+            _frames_read{1}
+        {
+            advance(offset);
+        }
 
         ~Trajectory(void)
         {
@@ -76,6 +77,8 @@ class Trajectory
         bool is_null() const {return !_stream.good();}
 
         size_t index() const {return _index;}
+
+        size_t frames_read() const {return _frames_read;}
 
         const Frame & frame() const 
         {
@@ -120,6 +123,7 @@ class Trajectory
             _stream.seekg(0, std::ios::beg); // back to the start!
             _index = 0;
             _frame = Frame(_stream, _particles_per_molecule);
+            _frames_read = 1;
         }
 
         void advance(const size_t number=1)
@@ -131,16 +135,17 @@ class Trajectory
             }
             _index += 1;
             _frame = Frame(_stream, _particles_per_molecule);
+            ++_frames_read;
         }
 
         void loop_advance(int argc, char **argv)
         {
             size_t offset = static_cast<size_t>(
-                        atoi(couf::parse_arguments(argc, argv, "--offset")));
+                    atoi(couf::parse_arguments(argc, argv, "--offset")));
             size_t max = static_cast<size_t>(
-                        atoi(couf::parse_arguments(argc, argv, "--max")));
+                    atoi(couf::parse_arguments(argc, argv, "--max")));
             size_t step = static_cast<size_t>(
-                        atoi(couf::parse_arguments(argc, argv, "--step", "1")));
+                    atoi(couf::parse_arguments(argc, argv, "--step", "1")));
             double exponent = atof(couf::parse_arguments(argc, argv, "--exp"));
 
             size_t ndx = index();
@@ -179,15 +184,18 @@ class Trajectory
             }
             else
             {
-                reset();
-                advance(number);
+                _stream.clear();                 // clear fail and eof bits
+                _stream.seekg(0, std::ios::beg); // back to the start!
+                _index = 0;
+                advance(number + 1);
+                _index -= 1;
             }
         }
 
         // operators
         Trajectory & operator=(const Trajectory&) = delete; // disable assign
 
-        Frame operator*() const {return _frame;} // dereference
+        Frame operator*() const {return frame();} // dereference
 
         //const Frame * operator->() const {return &_frame;}
         Frame * operator->() {return &_frame;}
@@ -218,12 +226,14 @@ class Trajectory
         {
             if(trajectory.is_null())
             {
-                os << "Trajectory ended at index "
-                    << trajectory.index()<< '\n';
+                os << "Trajectory ended at index: "
+                    << trajectory.index() << '\n'
+                    << "Frames read: " << trajectory.frames_read() << '\n';
             }
             else
             {
-                os << trajectory.index() << ": " << *trajectory;
+                os << trajectory.index() << ": " << *trajectory
+                    << "Frames read " << trajectory.frames_read() << '\n';
             }
             return os;
         }
@@ -326,8 +336,6 @@ double correlation_function(T (Molecule::*f)(void),
     size_t count = 0;
 
     const size_t n_mol = trajectory->number_of_molecules();
-    //std::vector<Frame> cache;
-    //cache.reserve(span);
     std::list<Frame> cache;
 
     // fill frame cache
@@ -351,13 +359,11 @@ double correlation_function(T (Molecule::*f)(void),
 
         for(size_t i_mol = 0; i_mol < n_mol; ++i_mol)
         {
-            //std::cout << "Molecule " << i_mol << '\n';
             val_1 = (frame_1.molecule(i_mol).*f)();
             val_2 = (frame_2.molecule(i_mol).*f)();
             if(span == 0) assert(val_1 == val_2);
 
             mean += val_2 * val_1;
-            //std::cerr << "c1: " << val_1.abs() << ' ' << val_2.abs() << '\n';
             ++count;
         }
         ++trajectory;

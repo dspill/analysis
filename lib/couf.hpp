@@ -16,7 +16,7 @@ namespace couf
     int my_assert(bool condition)
     {
         if(condition) return 0;
-        else exit(1);
+        else throw std::runtime_error("assertion failed");
     }
 
     /* folding */
