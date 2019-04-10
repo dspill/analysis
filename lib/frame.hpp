@@ -139,13 +139,6 @@ class Frame
          */
         friend bool operator==(const Frame& lhs, const Frame& rhs)
         {
-            std::cout << (lhs._coordinates == rhs._coordinates) << '\n';
-            std::cout << (lhs._velocities == rhs._velocities) << '\n';
-
-            std::cout << lhs._coordinates.size() << ' ' << rhs._coordinates.size() << '\n';
-            std::cout << lhs._velocities.size() << ' ' << rhs._velocities.size() << '\n';
-            std::cout << lhs.coordinate(0) << " <-> " << rhs.coordinate(0) << '\n';
-            std::cout << lhs.velocity(0) << " <-> " << rhs.velocity(0) << '\n';
             return lhs._coordinates == rhs._coordinates
                 && lhs._velocities == rhs._velocities
                 && lhs._box == rhs._box
