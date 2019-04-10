@@ -59,9 +59,11 @@ int main(int argc, char **argv)
     /* get lattice size */
     const size_t original_lattice_size = round(traj->box()[0]);
     const size_t lattice_size = round(original_lattice_size / lattice_constant);
+
     cout << "original lattice size = " << original_lattice_size << '\n';
     cout << "scaled lattice size   = " << lattice_size << '\n';
     cout << "lattice constant      = " << lattice_constant << '\n';
+
     if(lattice_size % cg_factor != 0)
         throw runtime_error("Lattice_size must be divisible by cg_factor.\n");
 
