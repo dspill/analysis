@@ -38,9 +38,10 @@ int main()
 
     // read from file
     {
-
+        Frame frame0("dummy.xyz", 2);
         Frame frame;
         frame.read_xyz("dummy.xyz", 2);
+        couf::my_assert(frame0 == frame);
         couf::my_assert(frame.box() == Real3D(97., 98., 99.));
         couf::my_assert(frame.particles_per_molecule() == 2);
         couf::my_assert(frame.number_of_molecules() == 2);
@@ -238,6 +239,42 @@ int main()
 
         delete [] lattice;
         delete [] lattice2;
+    }
+
+    /* rotations */
+    {
+        Frame frame1("dummy.xyz", 2);
+        Frame frame2("dummy.xyz", 2);
+
+        const double thr = 10e-12;
+        double angle = 1.234;
+        frame1.rotate_x(angle);
+        frame2.rotate(Real3D{1., 0., 0.}, angle);
+
+        cout << "rotated:\n";
+        for(size_t i = 0; i < frame1.size(); ++i)
+        {
+            couf::my_assert((frame1.coordinate(i) - frame2.coordinate(i)).abs()
+                    < thr);
+        }
+
+        angle = 4.321;
+        frame1.rotate_y(angle);
+        frame2.rotate(Real3D{0., 1., 0.}, angle);
+        for(size_t i = 0; i < frame1.size(); ++i)
+        {
+            couf::my_assert((frame1.coordinate(i) - frame2.coordinate(i)).abs()
+                    < thr);
+        }
+
+        angle = 2.341;
+        frame1.rotate_z(angle);
+        frame2.rotate(Real3D{0., 0., 1.}, angle);
+        for(size_t i = 0; i < frame1.size(); ++i)
+        {
+            couf::my_assert((frame1.coordinate(i) - frame2.coordinate(i)).abs()
+                    < thr);
+        }
     }
 
     cout << "===== Frame clear =====\n";

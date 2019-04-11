@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     char outfile[256];
 
     // frames to skip at the beginning
-    double threshold    = atof(couf::parse_arguments(argc, argv, "--thr"));
+    double threshold    = atof(couf::parse_arguments(argc, argv, "--thr", "-1"));
     int cg_factor       = atoi(couf::parse_arguments(argc, argv, "--cg", "1"));
     int fg_factor       = atoi(couf::parse_arguments(argc, argv, "--fg", "1"));
     bool natural_units  = atoi(couf::parse_arguments(argc, argv, "--natural_units", "0"));

@@ -583,6 +583,41 @@ int main()
             cout << (abs(mfs[3] / (3.*M_PI*radius))) << '\n';
             cout << (abs(mfs[4])) << '\n';
             cout << (abs(mfs[5])) << '\n';
+
+            frame.rotate_x(M_PI/4.);
+            mfs = minkowski_functionals(frame, size, .5, 'c');
+
+            cout << "rotated cube 1:\n";
+            cout << (abs(mfs[0] / pow(radius,3))) << '\n';
+            cout << (abs(mfs[1] / (6*radius*radius))) << '\n';
+            cout << (abs(mfs[2] / (3.*M_PI*radius))) << '\n';
+            cout << (abs(mfs[3] / (3.*M_PI*radius))) << '\n';
+            cout << (abs(mfs[4])) << '\n';
+            cout << (abs(mfs[5])) << '\n';
+
+            frame.rotate_y(M_PI/4.);
+            mfs = minkowski_functionals(frame, size, .5, 'c');
+
+            cout << "rotated cube 2:\n";
+            cout << (abs(mfs[0] / pow(radius,3))) << '\n';
+            cout << (abs(mfs[1] / (6*radius*radius))) << '\n';
+            cout << (abs(mfs[2] / (3.*M_PI*radius))) << '\n';
+            cout << (abs(mfs[3] / (3.*M_PI*radius))) << '\n';
+            cout << (abs(mfs[4])) << '\n';
+            cout << (abs(mfs[5])) << '\n';
+
+            frame.rotate_z(M_PI/4.);
+            mfs = minkowski_functionals(frame, size, .5, 'c');
+
+            cout << "rotated cube 3:\n";
+            cout << (abs(mfs[0] / pow(radius,3))) << '\n';
+            cout << (abs(mfs[1] / (6*radius*radius))) << '\n';
+            cout << (abs(mfs[2] / (3.*M_PI*radius))) << '\n';
+            cout << (abs(mfs[3] / (3.*M_PI*radius))) << '\n';
+            cout << (abs(mfs[4])) << '\n';
+            cout << (abs(mfs[5])) << '\n';
+
+            frame.write_xyz("rotated_cube.xyz");
         }
     }
     return 0;

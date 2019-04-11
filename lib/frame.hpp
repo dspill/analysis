@@ -107,6 +107,29 @@ class Frame
         Frame(std::ifstream & stream, const size_t particles_per_molecule = 0,
                 const char format = 'x')
         {
+            if(!stream) 
+            {
+                throw std::runtime_error(std::string("file input error"));
+            }
+            switch(format) {
+                case 'x'  :
+                    read_xyz(stream, particles_per_molecule);
+                    break;
+                default :
+                    throw std::runtime_error("Unknown file type.");
+            }
+        }
+
+        Frame(const char * filename, const size_t particles_per_molecule = 0,
+                const char format = 'x') 
+            : _particles_per_molecule(particles_per_molecule)
+        {
+            std::ifstream stream(filename);
+            if(!stream) 
+            {
+                throw std::runtime_error(std::string("file ") + filename 
+                        + std::string(" could not be found"));
+            }
             switch(format) {
                 case 'x'  :
                     read_xyz(stream, particles_per_molecule);
@@ -460,38 +483,71 @@ class Frame
             return;
         }
 
-        void rotate_x(double angle)
+        void rotate_x(const double angle)
         {
-            for(auto c : _coordinates)
+            double c = cos(angle);
+            double s = sin(angle);
+
+            for(auto it = _coordinates.begin(); it != _coordinates.end(); ++it)
             {
-                c = Real3D{
-                    c[0],
-                    cos(angle) * c[1] - sin(angle) * c[2],
-                    sin(angle) * c[1] + cos(angle) * c[2],
+                auto crd = *it;
+                *it = Real3D{
+                    crd * Real3D{ 1,  0,  0},
+                    crd * Real3D{ 0,  c, -s},
+                    crd * Real3D{ 0,  s,  c}
                 };
             }
         }
 
-        void rotate_y(double angle)
+        void rotate_y(const double angle)
         {
-            for(auto c : _coordinates)
+            double c = cos(angle);
+            double s = sin(angle);
+
+            for(auto it = _coordinates.begin(); it != _coordinates.end(); ++it)
             {
-                c = Real3D{
-                    c[0] * cos(angle) + c[2] * sin(angle),
-                        c[1],
-                        - c[0] * sin(angle) + c[2] * cos(angle)
+                auto crd = *it;
+                *it = Real3D{
+                    crd * Real3D{ c,  0,  s},
+                    crd * Real3D{ 0,  1,  0},
+                    crd * Real3D{-s,  0,  c}
                 };
             }
         }
 
-        void rotate_z(double angle)
+        void rotate_z(const double angle)
         {
-            for(auto c : _coordinates)
+            double c = cos(angle);
+            double s = sin(angle);
+
+            for(auto it = _coordinates.begin(); it != _coordinates.end(); ++it)
             {
-                c = Real3D{
-                    c[0] * cos(angle) - c[2] * sin(angle),
-                        c[0] * sin(angle) + c[1] * cos(angle),
-                        c[2]
+                auto crd = *it;
+                *it = Real3D{
+                    crd * Real3D{ c, -s,  0},
+                    crd * Real3D{ s,  c,  0},
+                    crd * Real3D{ 0,  0,  1}
+                };
+            }
+        }
+
+        void rotate(const Real3D vector, const double angle)
+        {
+            const double x = vector[0];
+            const double y = vector[1];
+            const double z = vector[2];
+
+            const double c = cos(angle);
+            const double omc = 1. - c;
+            const double s = sin(angle);
+
+            for(auto it = _coordinates.begin(); it != _coordinates.end(); ++it)
+            {
+                auto crd = *it;
+                *it = Real3D{
+                    crd * Real3D{x*x*omc+c,   x*y*omc-z*s, x*z*omc+y*s},
+                    crd * Real3D{x*y*omc+z*s, y*y*omc+c,   y*z*omc-x*s},
+                    crd * Real3D{x*z*omc-y*s, y*z*omc+x*s, z*z*omc+c}
                 };
             }
         }
@@ -1597,7 +1653,7 @@ double mean_structure_factor_old(const Frame & frame, const double q,
  */
 template<typename T>
 std::array<double, 6> minkowski_functionals(const T input, 
-        const size_t lattice_size, const double threshold = 0., 
+        const size_t lattice_size, const double threshold = -1., 
         const char norm='n', const bool natural_units=false)
 {
     if(typeid(T) != typeid(Frame) && typeid(T) != typeid(const char *))
@@ -1901,7 +1957,7 @@ std::array<double, 6> minkowski_functionals(const T input,
         / number_of_sites;
 
     double new_threshold{0.};
-    if(threshold == 0.) new_threshold = mean_density;
+    if(threshold < 0.) new_threshold = mean_density;
     else new_threshold = threshold;
 
     // loop over lattice centers
