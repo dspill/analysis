@@ -2,7 +2,7 @@
 #include "trajectory.hpp"
 #include "couf.hpp"
 #include "limits.h"
-#include <algorithm>    // std::sort
+#include <algorithm>    // sort
 
 #define QMAX 10.
 
@@ -44,11 +44,13 @@ int main(int argc, char **argv)
     int cg_factor       = atoi(couf::parse_arguments(argc, argv, "--cg", "1"));
     int fg_factor       = atoi(couf::parse_arguments(argc, argv, "--fg", "1"));
     bool natural_units  = atoi(couf::parse_arguments(argc, argv, "--natural_units", "0"));
+    double range        = atoi(couf::parse_arguments(argc, argv, "--range", "0"));
 
     if(couf::is_given(argc, argv, "--of"))
         strcpy(outfile, couf::parse_arguments(argc, argv, "--of"));
     else
-        sprintf(outfile, "minkowski_functionals_fg%d_cg%d_thr%3.2f.dat", fg_factor, cg_factor, threshold);
+        sprintf(outfile, "minkowski_functionals_fg%d_cg%d_thr%3.2f.dat",
+                fg_factor, cg_factor, threshold);
 
     const double lattice_constant = (double) cg_factor / fg_factor;
 
@@ -84,16 +86,17 @@ int main(int argc, char **argv)
                 *traj, lattice_size, threshold, 'c', natural_units);
 
         /* file output */
-        stream << std::fixed;
-        stream << std::scientific << std::setw(6);
+        stream << fixed;
+        stream << scientific << setw(6);
         stream << traj.index();
 
         stream.precision(precision);
         for(auto mf : mfs)
         {
-            stream << std::scientific << std::setw(precision + 8) << mf;
+            stream << scientific << setw(precision + 8) << mf;
         }
-        stream << '\n';
+        //stream << '\n';
+        stream << endl;
 
         /* advance to next frame */
         traj.loop_advance(argc, argv);

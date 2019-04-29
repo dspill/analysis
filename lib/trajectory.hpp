@@ -27,6 +27,7 @@ class Trajectory
          */
         size_t advance_one()
         {
+            if(!_stream) return 0;
             // basic function that advances _stream by one frame
             std::string str;
             std::getline(_stream, str);
