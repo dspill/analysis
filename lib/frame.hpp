@@ -531,11 +531,11 @@ class Frame
             }
         }
 
-        void rotate(const Real3D vector, const double angle)
+        void rotate(const Real3D v, const double angle)
         {
-            const double x = vector[0];
-            const double y = vector[1];
-            const double z = vector[2];
+            const double x = v[0];
+            const double y = v[1];
+            const double z = v[2];
 
             const double c = cos(angle);
             const double omc = 1. - c;
