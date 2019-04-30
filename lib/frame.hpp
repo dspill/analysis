@@ -1507,7 +1507,7 @@ std::vector<std::vector<double>> structure_factor_inplace(const T input, const s
     /* generate fftw plan */
     fftw_plan plan = fftw_plan_dft_r2c_3d(lattice_size, lattice_size,
             lattice_size, lattice.get(), lattice_transformed.get(),
-            FFTW_INPLACE); // TODO inplace?
+            FFTW_ESTIMATE); // TODO inplace?
 
     /* read lattice with function that is suitable for type of input */
     read_lattice(input, lattice.get(), lattice_size);
