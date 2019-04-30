@@ -622,6 +622,7 @@ class Frame
 
         Frame slice_square(const double thickness, const double height = 0.) const
         {
+            // TODO misses some particles?
             return slice(thickness, Real3D(0., 0., height), 
                     Real3D(0., 0., 1.));
         }

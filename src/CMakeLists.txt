@@ -2,24 +2,25 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin")
 file(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 set(programs 
-    traj_info
-    analyze_trajectory 
-    analyze_timeseries 
     analyze_lb
-    r_e_over_r_g
+    analyze_timeseries 
+    analyze_trajectory 
+    average_timeseries 
+    brute_force_dynamic_structure_factor 
+    check
     correlation_function 
-    ts_correlation_function 
-    generate_timeseries_ete_over_rg 
-    minkowski_functionals
     dynamic_structure_factor 
     dynamic_structure_factor_from_lattice
-    brute_force_dynamic_structure_factor 
-    slice_configuration
+    generate_timeseries_ete_over_rg 
+    get_frames
+    get_last_frame 
     latticeize_configuration 
     manipulate_frame 
-    get_last_frame 
-    get_frames
-    average_timeseries 
+    minkowski_functionals
+    r_e_over_r_g
+    slice_configuration
+    traj_info
+    ts_correlation_function 
     )
 
 foreach(prog ${programs})

@@ -135,8 +135,12 @@ class Trajectory
                 _index += advance_one();
             }
             _index += 1;
-            _frame = Frame(_stream, _particles_per_molecule);
-            ++_frames_read;
+            std::cout.flush();
+            if(!is_null())
+            {
+                _frame = Frame(_stream, _particles_per_molecule);
+                ++_frames_read;
+            }
         }
 
         void loop_advance(int argc, char **argv)
@@ -158,10 +162,11 @@ class Trajectory
                 return;
             }
 
-
             // advance exponentially
             if(exponent)
             {
+                std::cout << "expadvancing" << std::endl;
+                std::cout << is_null() << std::endl;
                 if(ndx == 0) advance();
                 else advance(ceil(ndx * (pow(10, exponent) - 1)));
             }

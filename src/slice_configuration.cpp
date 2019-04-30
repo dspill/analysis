@@ -23,11 +23,9 @@ int main(int argc, char **argv)
     // infile
     const char *infile  = argv[1];
     // frames to skip at the beginning
-    double thickness = atoi(couf::parse_arguments(argc, argv, "-d"));
+    double thickness = atoi(couf::parse_arguments(argc, argv, "-d", "2.0"));
     size_t particles_per_molecule {static_cast<size_t>(
             atoi(couf::parse_arguments(argc, argv, "--ppm")))};
-
-    if(thickness == 0) thickness = .75;
 
     char outfile[256];
     sprintf(outfile, "sliced_%s", infile);
@@ -36,16 +34,16 @@ int main(int argc, char **argv)
     Trajectory traj(infile, particles_per_molecule);
 
     /* loop through frames */
+    Frame slice;
     while(!traj.is_null())
     {
         printf("\rprocessing frame %zd ", traj.index());
         cout.flush();
 
         /* file output */
-        //traj->set_types(128);
         traj->set_types();
-        //traj->slice(thickness).write_xyz(outfile, true);
-        traj->slice_square(thickness).write_xyz(outfile, true);
+        (traj->slice_square(thickness)).write_xyz(outfile, true);
+
 
         /* advance to next frame */
         traj.loop_advance(argc, argv);
