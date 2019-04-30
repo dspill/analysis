@@ -1499,8 +1499,6 @@ std::vector<std::vector<double>> structure_factor_inplace(const T input, const s
         lattice_transformed.get()[i][0] = 0.;
         lattice_transformed.get()[i][1] = 0.;
     }
-    //memset(lattice_transformed.get(), 0.,
-    //2*reduced_number_of_sites*sizeof(double)); // TODO
 
     std::unique_ptr<double>
         lattice{fftw_alloc_real(number_of_sites * sizeof(double))};
@@ -1509,7 +1507,7 @@ std::vector<std::vector<double>> structure_factor_inplace(const T input, const s
     /* generate fftw plan */
     fftw_plan plan = fftw_plan_dft_r2c_3d(lattice_size, lattice_size,
             lattice_size, lattice.get(), lattice_transformed.get(),
-            FFTW_ESTIMATE); // TODO inplace?
+            FFTW_INPLACE); // TODO inplace?
 
     /* read lattice with function that is suitable for type of input */
     read_lattice(input, lattice.get(), lattice_size);
