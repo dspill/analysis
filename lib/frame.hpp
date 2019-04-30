@@ -1478,47 +1478,6 @@ std::vector<std::vector<double>> structure_factor(const T input, const size_t
             lattice_constant, bin_width, norm);
 }
 
-template<typename T>
-std::vector<std::vector<double>> structure_factor_inplace(const T input, const size_t
-        lattice_size, const double lattice_constant, const double bin_width =
-        0.1, const double norm = 1.)
-{
-    if(typeid(T) != typeid(Frame) && typeid(T) != typeid(const char *))
-        throw std::runtime_error("Incompatible input type.\n");
-
-    const size_t number_of_sites = pow(lattice_size, 3);
-    const size_t reduced_number_of_sites = pow(lattice_size, 2) *
-        (lattice_size / 2 + 1);
-
-    /* allocate space for lattices */
-    std::unique_ptr<fftw_complex> lattice_transformed{
-        fftw_alloc_complex(reduced_number_of_sites * sizeof(fftw_complex))
-    };
-    for(size_t i = 0; i < reduced_number_of_sites; ++i)
-    {
-        lattice_transformed.get()[i][0] = 0.;
-        lattice_transformed.get()[i][1] = 0.;
-    }
-
-    std::unique_ptr<double>
-        lattice{fftw_alloc_real(number_of_sites * sizeof(double))};
-    std::fill(lattice.get(), lattice.get() + number_of_sites, 0.);
-
-    /* generate fftw plan */
-    fftw_plan plan = fftw_plan_dft_r2c_3d(lattice_size, lattice_size,
-            lattice_size, lattice.get(), lattice_transformed.get(),
-            FFTW_ESTIMATE); // TODO inplace?
-
-    /* read lattice with function that is suitable for type of input */
-    read_lattice(input, lattice.get(), lattice_size);
-
-    /* do the transformation */
-    fftw_execute(plan);
-
-    return linearize_lattice(lattice_transformed.get(), lattice_size,
-            lattice_constant, bin_width, norm);
-}
-
 /**
  * Calculate the exact structure factor for given wave vector q
  * @param[in] frame input configuration

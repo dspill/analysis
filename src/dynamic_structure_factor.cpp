@@ -80,12 +80,6 @@ int main(int argc, char **argv)
         }
         couf::write_to_file(struc_fac, outfile);
 
-        // TODO testing
-        struc_fac = structure_factor_inplace(*traj, lattice_size,
-                lattice_constant, bin_width, traj->size());
-        sprintf(outfile, "dsf_%05zd.dat", traj.index());
-        couf::write_to_file(struc_fac, outfile);
-
         /* advance to next frame */
         traj.loop_advance(argc, argv);
     }
