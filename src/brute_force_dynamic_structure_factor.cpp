@@ -26,18 +26,12 @@ int main(int argc, char **argv)
     const int offset    = atoi(couf::parse_arguments(argc, argv, "--offset"));
     size_t max          = static_cast<size_t>(atoi(couf::parse_arguments(argc, argv, "--max")));
     double bin_width    = atof(couf::parse_arguments(argc, argv, "--bw"));
-    double qmax         = atof(couf::parse_arguments(argc, argv, "--qmax"));
-    int nrand           = atoi(couf::parse_arguments(argc, argv, "--nrand"));
-    int step            = atoi(couf::parse_arguments(argc, argv, "--step"));
+    double qmax         = atof(couf::parse_arguments(argc, argv, "--qmax", "7"));
+    int nrand           = atoi(couf::parse_arguments(argc, argv, "--nrand", "128"));
+    int step            = atoi(couf::parse_arguments(argc, argv, "--step", "1"));
 
     constexpr size_t precision = 11;
     char outfile[256];
-
-    if(qmax == 0.0) qmax = 7.;
-    if(!couf::is_given(argc, argv, "--max"))
-        max = std::numeric_limits<int>::max();
-    if(step == 0) step = 1;
-    if(nrand == 0) nrand = 128;
 
     /* ----------- input done ---------- */
     Trajectory traj{infile};
@@ -56,7 +50,7 @@ int main(int argc, char **argv)
     traj += offset;
 
     /* loop through frames */
-    while(!traj.is_null() && traj.index() <= max)
+    while(!traj.is_null())
     {
         cout << "reading frame " << traj.index() << '\n';
         cout.flush();
@@ -77,7 +71,7 @@ int main(int argc, char **argv)
         stream.close();
 
         /* advance to next frame */
-        traj += step;
+        traj.loop_advance(argc, argv);
     }
     int frames_read = traj.index() - offset;
     frames_read = frames_read / step + (frames_read % step != 0);

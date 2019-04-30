@@ -1478,8 +1478,53 @@ std::vector<std::vector<double>> structure_factor(const T input, const size_t
             lattice_constant, bin_width, norm);
 }
 
+template<typename T>
+std::vector<std::vector<double>> structure_factor_inplace(const T input, const size_t
+        lattice_size, const double lattice_constant, const double bin_width =
+        0.1, const double norm = 1.)
+{
+    if(typeid(T) != typeid(Frame) && typeid(T) != typeid(const char *))
+        throw std::runtime_error("Incompatible input type.\n");
+
+    const size_t number_of_sites = pow(lattice_size, 3);
+    const size_t reduced_number_of_sites = pow(lattice_size, 2) *
+        (lattice_size / 2 + 1);
+
+    /* allocate space for lattices */
+    std::unique_ptr<fftw_complex> lattice_transformed{
+        fftw_alloc_complex(reduced_number_of_sites * sizeof(fftw_complex))
+    };
+    for(size_t i = 0; i < reduced_number_of_sites; ++i)
+    {
+        lattice_transformed.get()[i][0] = 0.;
+        lattice_transformed.get()[i][1] = 0.;
+    }
+    //memset(lattice_transformed.get(), 0.,
+    //2*reduced_number_of_sites*sizeof(double)); // TODO
+
+    std::unique_ptr<double>
+        lattice{fftw_alloc_real(number_of_sites * sizeof(double))};
+    std::fill(lattice.get(), lattice.get() + number_of_sites, 0.);
+
+    /* generate fftw plan */
+    fftw_plan plan = fftw_plan_dft_r2c_3d(lattice_size, lattice_size,
+            lattice_size, lattice.get(), lattice_transformed.get(),
+            FFTW_ESTIMATE); // TODO inplace?
+
+    /* read lattice with function that is suitable for type of input */
+    read_lattice(input, lattice.get(), lattice_size);
+
+    /* do the transformation */
+    fftw_execute(plan);
+
+    return linearize_lattice(lattice_transformed.get(), lattice_size,
+            lattice_constant, bin_width, norm);
+}
+
 /**
- * Calculate structure factor for given wave vector q
+ * Calculate the exact structure factor for given wave vector q
+ * @param[in] frame input configuration
+ * @param[in] q wave vector
  * @return S(q)
  */
 double structure_factor(const Frame & frame, const Real3D q)
@@ -1503,6 +1548,10 @@ double structure_factor(const Frame & frame, const Real3D q)
 /**
  * Compute the set of lattice vectors that lie within a spherical shell of
  * certain thickness.
+ * @param[in] radius radius of shell
+ * @param[in] thickness thickness of shell
+ * @param[in] lattice_constant lattice constant
+ * @return list of vectors
  */
 std::vector<Real3D> lattice_vectors_inside_shell(const double radius,
         const double thickness, const double lattice_constant)
@@ -1543,6 +1592,9 @@ std::vector<Real3D> lattice_vectors_inside_shell(const double radius,
  * All lattice vectors in a shell of thickness lattice_constant around q are
  * considered if there are less than n_rand. If there are more, n_rand vectors
  * are chosen at random.
+ * @param[in] frame
+ * @param[in] q absolute value of vave vector to consider
+ * @param[in] n_rand number of random orientations to consider
  * @return vector of tuples (<q>, <S(q)>, \sigma(q))
  */
 std::vector<double>  mean_structure_factor(const Frame & frame, const double q,
@@ -1591,43 +1643,6 @@ std::vector<double>  mean_structure_factor(const Frame & frame, const double q,
     result[1] = mean_S;
     result[2] = stdev_S;
     return result;
-}
-
-double mean_structure_factor_old(const Frame & frame, const double q,
-        const size_t n_rand = 128)
-{
-    //if(q == 0) return frame.size();
-    double S = 0.;
-    // smallest possible length units commensurable with pbc
-    double dq_x = 2 * M_PI / frame.box(0);
-    double dq_y = 2 * M_PI / frame.box(1);
-    double dq_z = 2 * M_PI / frame.box(2);
-
-    // setup random number generator
-    std::mt19937 rng;
-    rng.seed(std::random_device()());
-    std::uniform_real_distribution<> dist_phi(0, 2 * M_PI);
-    std::uniform_real_distribution<> dist_theta(0, M_PI);
-
-    for(size_t i = 0; i < n_rand; ++i)
-    {
-        double phi = dist_phi(rng);
-        double theta = dist_theta(rng);
-
-        double q_x = q * sin(theta) * cos(phi);
-        double q_y = q * sin(theta) * sin(phi);
-        double q_z = q * cos(theta);
-
-        q_x = std::round(q_x / dq_x) * dq_x;
-        q_y = std::round(q_y / dq_y) * dq_y;
-        q_z = std::round(q_z / dq_z) * dq_z;
-
-        Real3D q_vec{q_x, q_y, q_z};
-
-        S += structure_factor(frame, q_vec);
-    }
-
-    return S / n_rand;
 }
 
 
