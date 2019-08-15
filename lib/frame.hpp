@@ -397,6 +397,25 @@ class Frame
             _types.push_back(type);
         }
 
+        void add_molecule(const Molecule m, 
+                const Real3D displacement = Real3D(0.))
+        {
+            bool has_velocities = m.has_velocities();
+            for(size_t i = 0; i < m.size(); ++i)
+            {
+                Real3D coord = m.coordinate(i) + displacement;
+                if(has_velocities)
+                {
+                    Real3D veloc = m.velocity(i);
+                    add_particle(coord, veloc);
+                }
+                else
+                {
+                    add_particle(coord);
+                }
+            }
+        }
+
         void remove_particle(const size_t index)
         {
             _coordinates.erase(_coordinates.begin() + index);
@@ -637,14 +656,20 @@ class Frame
 
 
         /**
-         * Multiplies configuration. Works only for unfolded
+         * This returns a frame that is extended by periodic images of the
+         * original frame.
+         * @param[in] mx how often to copy in x-direction
+         * @param[in] my how often to copy in y-direction
+         * @param[in] mz how often to copy in z-direction
+         * @return multiplied frame
          */
         Frame multiply(const size_t mx=2, const size_t my=2,
                 const size_t mz=2) const
         {
             Frame new_frame;
             const Real3D b = box();
-            new_frame.set_box(2 * b);
+            new_frame.set_box(Real3D(mx*b[0], my*b[1], mz*b[2]));
+            new_frame.set_particles_per_molecule(particles_per_molecule());
 
             for(size_t dx = 0; dx < mx; ++dx)
             {
@@ -652,28 +677,29 @@ class Frame
                 {
                     for(size_t dz = 0; dz < mz; ++dz)
                     {
-                        auto cit = c_begin();
-                        auto vit = v_begin();
-                        while(cit != c_end())
+                        for(size_t im = 0; im < number_of_molecules(); ++im)
                         {
-                            if(has_velocities())
-                            {
-                                new_frame.add_particle(
-                                        *cit + Real3D(dx*b[0],dy*b[1],dz*b[2]),
-                                        *vit);
-                            }
-                            else
-                            {
-                                new_frame.add_particle(
-                                        *cit + Real3D(dx*b[0],dy*b[1],dz*b[2]));
-                            }
-                            ++cit;
-                            ++vit;
+                            Molecule m = molecule(im);
+                            Real3D displacement = Real3D(dx*b[0],dy*b[1],dz*b[2]);
+                            new_frame.add_molecule(m, displacement);
                         }
                     }
                 }
             }
             return new_frame;
+        }
+
+        bool consistent() const
+        {
+            bool c = true;
+            c = (size() % particles_per_molecule() == 0);
+            for(size_t i_m = 0; i_m < number_of_molecules(); ++i_m)
+            {
+                if(!(molecule(i_m).consistent())) c = false;
+            }
+
+            if(!c) std::cerr << "WARNING: Frame inconsistent\n";
+            return c;
         }
 
         /* analysis */
@@ -789,7 +815,12 @@ class Frame
         void write_xyz(const char* filename, const bool append = false, const
                 size_t precision = 11) const
         {
-            if(is_null()) return;
+            assert(consistent());
+            if(is_null())
+            {
+                std::cerr << "Writing of file not possible (frame is null)\n";
+                return;
+            }
 
             std::ofstream stream;
 

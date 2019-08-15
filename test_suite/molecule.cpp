@@ -2,6 +2,7 @@
 #include <ctime>
 #include <algorithm>
 #include <boost/timer.hpp>
+#include <cassert>
 
 #define DEBUG
 
@@ -35,58 +36,60 @@ int main()
         {
             Molecule mol{coordinates.cbegin(), coordinates.cbegin(), 
                 velocities.cbegin(), velocities.cbegin()};
-            couf::my_assert(mol.size() == 0);
+            assert(mol.size() == 0);
 
-            couf::my_assert(mol.has_velocities() == false);
-            couf::my_assert(mol.is_null() == true);
+            assert(mol.has_velocities() == false);
+            assert(mol.is_null() == true);
         }
 
         // single atom molecule
         {
             Molecule mol{coordinates.cbegin(), coordinates.cbegin() + 1, 
                 velocities.cbegin(), velocities.cbegin() + 1};
-            couf::my_assert(mol.size() == 1);
+            assert(mol.size() == 1);
 
-            couf::my_assert(mol.has_velocities() == true);
-            couf::my_assert(mol.is_null() == false);
+            assert(mol.has_velocities() == true);
+            assert(mol.is_null() == false);
 
-            couf::my_assert(mol.end_to_end() == Real3D(0.));
-            couf::my_assert(mol.end_to_end_squared() == 0.);
+            assert(mol.end_to_end() == Real3D(0.));
+            assert(mol.end_to_end_squared() == 0.);
         }
 
         Molecule mol{coordinates.cbegin(), coordinates.cend(), 
             velocities.cbegin(), velocities.cend()};
 
-        couf::my_assert(mol.size() == 3);
-        couf::my_assert(mol.has_velocities() == true);
-        couf::my_assert(mol.is_null() == false);
+        assert(mol.size() == 3);
+        assert(mol.has_velocities() == true);
+        assert(mol.is_null() == false);
 
-        couf::my_assert(mol.coordinate(0) == c0);
-        couf::my_assert(mol.coordinate(1) == c1);
-        couf::my_assert(mol.coordinate(2) == c2);
+        assert(mol.coordinate(0) == c0);
+        assert(mol.coordinate(1) == c1);
+        assert(mol.coordinate(2) == c2);
 
-        couf::my_assert(mol.velocity(0) == v0);
-        couf::my_assert(mol.velocity(1) == v1);
-        couf::my_assert(mol.velocity(2) == v2);
+        assert(mol.velocity(0) == v0);
+        assert(mol.velocity(1) == v1);
+        assert(mol.velocity(2) == v2);
 
-        couf::my_assert(mol.bond(0) == c1 - c0);
-        couf::my_assert(mol.bond(1) == c2 - c1);
+        assert(mol.bond(0) == c1 - c0);
+        assert(mol.bond(1) == c2 - c1);
 
-        couf::my_assert(mol.bond_length(0) == (c1 - c0).abs());
-        couf::my_assert(mol.bond_length(1) == (c2 - c1).abs());
+        assert(mol.bond_length(0) == (c1 - c0).abs());
+        assert(mol.bond_length(1) == (c2 - c1).abs());
 
-        couf::my_assert(mol.mean_bond_length() 
+        assert(mol.mean_bond_length() 
                 == ((c1 - c0).abs() + (c2 - c1).abs())/2.);
 
-        couf::my_assert(mol.max_bond_length() 
+        assert(mol.max_bond_length() 
                 == max((c1 - c0).abs(), (c2 - c1).abs()));
 
-        couf::my_assert(mol.end_to_end() == c2 - c0);
-        couf::my_assert(mol.end_to_end_squared() == (c2 - c0).sqr());
+
+
+        assert(mol.end_to_end() == c2 - c0);
+        assert(mol.end_to_end_squared() == (c2 - c0).sqr());
 
         {
             Real3D rcm((c0 + c1 + c2) / 3.);
-            couf::my_assert(mol.center_of_mass() == rcm);
+            assert(mol.center_of_mass() == rcm);
 
 
             double rg_sq{0.};
@@ -95,8 +98,12 @@ int main()
                 rg_sq += (c - rcm).sqr();
             }
             rg_sq /= coordinates.size();
-            couf::my_assert(mol.radius_of_gyration_squared() == rg_sq);
+            assert(mol.radius_of_gyration_squared() == rg_sq);
         }
+
+        assert(mol.rouse_mode_0() == mol.rouse_mode(0));
+        assert((mol.center_of_mass() 
+                    - mol.rouse_mode(0)/sqrt(mol.size())).abs() < 10e-12);
 
         vector<Real3D> coordinates2;
 
@@ -106,8 +113,8 @@ int main()
 
         Molecule mol2{coordinates2.cbegin(), coordinates2.cend()};
 
-        couf::my_assert(mol2.size() == 3);
-        couf::my_assert(mol2.has_velocities() == false);
+        assert(mol2.size() == 3);
+        assert(mol2.has_velocities() == false);
 
         // mean squared displacement
         {
@@ -123,7 +130,7 @@ int main()
             }
             msd /= coordinates.size();
 
-            couf::my_assert(mol2.mean_squared_displacement(mol) == msd);
+            assert(mol2.mean_squared_displacement(mol) == msd);
         }
         cout << "===== Molecule clear =====\n";
     }

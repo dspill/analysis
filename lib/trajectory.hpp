@@ -104,7 +104,7 @@ class Trajectory
                 return frame().size() / particles_per_molecule();
         }
 
-        size_t size() // TODO why does this go past end? probably some \n stuff
+        size_t size()
         {
             const size_t start_index = index();
             size_t index = start_index;
@@ -112,6 +112,7 @@ class Trajectory
             {
                 advance_one();
                 index++;
+                //std::cout << index << '\n';
             }
             move_to(start_index);
             return index;
@@ -165,8 +166,6 @@ class Trajectory
             // advance exponentially
             if(exponent)
             {
-                std::cout << "expadvancing" << std::endl;
-                std::cout << is_null() << std::endl;
                 if(ndx == 0) advance();
                 else advance(ceil(ndx * (pow(10, exponent) - 1)));
             }
@@ -271,13 +270,18 @@ class Trajectory
                 return Timeseries<T>(data);
             }
 
+        /**
+         * @param[in] f function that produces observable of interest
+         * @param[in] step only process every step'th frame
+         * @param[in] max maximum frame to process
+         * @return timeseries where each timestep contains a vector of
+         * observables f (for each molecule)
+         */
         template <typename T>
             Timeseries<std::vector<T>> timeseries(T (Molecule::*f)(void), 
                     size_t step = 1,
                     size_t max = std::numeric_limits<int>::max())
             {
-                // make timeseries where each timestep contains a vector of
-                // observables f (for each molecule)
                 std::vector<std::vector<T>> data;
                 while(!is_null() && index() <= max)
                 {
@@ -288,13 +292,56 @@ class Trajectory
                 return Timeseries<std::vector<T>>(data);
             }
 
+        /**
+         * @param[in] step only process every step'th frame
+         * @param[in] max maximum frame to process
+         * @return set oftimeseries where each timestep contains a vector of
+         * observables f (for each molecule)
+         */
+        std::vector<Timeseries<std::vector<Real3D>>> 
+            timeseries_set(
+                    std::vector<Real3D (Molecule::*)()> vofp =
+                    { &Molecule::end_to_end, &Molecule::center_of_mass },
+                    size_t step = 1, 
+                    size_t max = std::numeric_limits<int>::max())
+            {
+                std::vector<Timeseries<std::vector<Real3D>>> data(vofp.size());
+                while(!is_null() && index() <= max)
+                {
+                    Frame f = frame();
+                    std::vector<std::vector<Real3D>> vec(vofp.size());
+                    for(size_t im = 0; im < f.number_of_molecules(); ++im)
+                    {
+                        Molecule m = f.molecule(im);
+
+                        for(size_t i_f = 0; i_f < vofp.size(); ++i_f)
+                        {
+                            vec[i_f].push_back((m.*vofp[i_f])());
+                        }
+                    }
+                    for(size_t i = 0; i < data.size(); ++i)
+                    {
+                        data[i].push_back(vec[i]);
+                    }
+                    advance(step);
+                }
+                reset();
+
+                return data;
+            }
+
+        /**
+         * @param[in] f function that produces observable of interest
+         * @param[in] step only process every step'th frame
+         * @param[in] max maximum frame to process
+         * @return timeseries where each timestep contains the value of f
+         * averaged over all molecules
+         */
         template <typename T>
             Timeseries<T> timeseries_mean(T (Molecule::*f)(void), 
                     size_t step = 1,
                     size_t max = std::numeric_limits<int>::max())
             {
-                // make timeseries where each timestep contains the value of f 
-                // averaged over all molecules
                 std::vector<T> data;
                 while(!is_null() && index() <= max)
                 {

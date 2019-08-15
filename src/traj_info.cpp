@@ -18,8 +18,7 @@ int main(int argc, char **argv)
     }
 
     size_t n_molecules {static_cast<size_t>(
-            atoi(couf::parse_arguments(argc, argv, "-n")))};
-    if(n_molecules == 0) n_molecules = 1;
+            atoi(couf::parse_arguments(argc, argv, "-n", "0")))};
 
     // infile
     const char *infile  = argv[1];

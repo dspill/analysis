@@ -16,6 +16,13 @@
 #include "Real3D.hpp"
 #include "couf.hpp"
 
+/** @file molecule.hpp */
+
+/**
+ * Contains references to molecule coordinates and several analysis functions 
+ * for molecule based observables.
+ */
+
 class Molecule
 {
     using r3dcit = std::vector<Real3D>::const_iterator;
@@ -71,6 +78,7 @@ class Molecule
 
     Real3D velocity(size_t index) const
     {
+        assert(has_velocities());
         assert(index < size());
         return *(_velocities_begin + index);
     }
@@ -87,6 +95,20 @@ class Molecule
         return bond(index).abs();
     }
 
+    bool consistent() const
+    {
+        bool c = true;
+        for(size_t i = 0; i < size() - 1; ++i)
+        {
+            if(bond_length(i) > 2.)
+            {
+                std::cerr << "large bond (" << bond_length(i) << ") detected\n";
+                c = false;
+            }
+        }
+        return c;
+    }
+
     // analysis 
     Real3D center_of_mass() 
     {
@@ -96,6 +118,41 @@ class Molecule
             r_cm += *cit;
         }
         return r_cm / size();
+    }
+
+    Real3D rouse_mode_0() 
+    {
+        Real3D rm(0.);
+        for(r3dcit cit = _coordinates_begin; cit != _coordinates_end; ++cit)
+        {
+            rm += *cit;
+        }
+
+        return rm / sqrt(size());
+    }
+
+    Real3D rouse_mode(const size_t p) 
+    {
+        Real3D rm(0.);
+        if(p == 0)
+        {
+            double pref = 1./sqrt(size());
+            for(r3dcit cit = _coordinates_begin; cit != _coordinates_end; ++cit)
+            {
+                rm += pref * *cit;
+            }
+        }
+        else
+        {
+            size_t i = 1;
+            double pref_1 = sqrt(2./ size());
+            double pref_2 = p * M_PI / size();
+            for(r3dcit cit = _coordinates_begin; cit != _coordinates_end; ++cit)
+            {
+                rm += pref_1 * cos(pref_2 * (i - .5));
+            }
+        }
+        return rm;
     }
 
     double radius_of_gyration_squared() 

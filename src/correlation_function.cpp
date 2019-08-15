@@ -35,22 +35,27 @@ int main(int argc, char **argv)
     Trajectory traj{infile, particles_per_molecule};
     traj += offset;
 
-    cout << "calculating end-to-end...";
-    cout.flush();
-    auto ts = traj.timeseries(&Molecule::end_to_end, step, max);
-    const double norm = ts.autocorrelation_function(0);
-    cout << "done.\n";
+    std::vector<Timeseries<std::vector<Real3D>>> vec 
+        = traj.timeseries_set(
+                {&Molecule::end_to_end, &Molecule::center_of_mass},
+                step, max);
 
     // open outfile
     const char outfile_name[256] = "autocorrelation_function.dat";
     remove(outfile_name);
     FILE *outfile;
     outfile = fopen(outfile_name, "w");
-    fprintf(outfile, "# step C_ete C_rcm\n");
-    for(size_t span = 0; span < ts.size(); ++span)
+    fprintf(outfile, "# step C_ete C_rcm C_rouse0\n");
+
+    for(size_t span = 0; span < vec[0].size(); ++span)
     {
-        fprintf(outfile, "%4zd %16.9e\n",
-                span * step, ts.autocorrelation_function(span)/norm);
+        fprintf(outfile, "%4zd ", span * step);
+        for(Timeseries ts: vec)
+        {
+            double norm = ts.autocorrelation_function(0);
+            fprintf(outfile, "%16.9e", ts.autocorrelation_function(span)/norm);
+        }
+        fprintf(outfile, "\n");
     }
     fclose(outfile);
 

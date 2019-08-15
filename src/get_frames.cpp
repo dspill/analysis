@@ -21,6 +21,7 @@ int main(int argc, char **argv)
         cout << "  --pdb       flag     (opt) output as vtk\n";
         cout << "  --ppm       <int>    particles_per_molecule (needed for vtk)\n";
         cout << "  --set_types <int>    deduct particle types from indices\n";
+        cout << "  --slice     <double>\n";
         cout << "  --exp       <double>\n";
         exit(1);
     }
@@ -32,6 +33,7 @@ int main(int argc, char **argv)
     const bool write_vtk = atoi(couf::parse_arguments(argc, argv, "--vtk"));
     const bool write_pdb = atoi(couf::parse_arguments(argc, argv, "--pdb"));
     const int  set_types = atoi(couf::parse_arguments(argc, argv, "--set_types"));
+    const double  slice  = atoi(couf::parse_arguments(argc, argv, "--slice"));
     size_t particles_per_molecule {static_cast<size_t>(
             atoi(couf::parse_arguments(argc, argv, "--ppm")))};
 
@@ -48,32 +50,34 @@ int main(int argc, char **argv)
 
     /* loop through frames */
     Trajectory traj{infile, particles_per_molecule};
+    Frame frame;
     while(!traj.is_null())
     {
         printf("\rReading frame %zd ", traj.index());
         cout.flush();
 
         /* file output */
-        if(set_types) traj->set_types(set_types);
+        frame = *traj;
+        if(set_types) frame.set_types(set_types);
+        if(slice) frame = frame.slice_square(slice);
         if(write_vtk)
         {
             if(append) sprintf(outfile, "traj_filtered.vtk");
             else sprintf(outfile, "frame_%05zd.vtk", traj.index());
-            traj->write_vtk(outfile, append);
+            frame.write_vtk(outfile, append);
         }
         else if(write_pdb)
         {
             if(append) sprintf(outfile, "traj_filtered.pdb");
             else sprintf(outfile, "frame_%05zd.pdb", traj.index());
-            traj->set_types();
-            traj->write_pdb(outfile, append);
+            frame.set_types();
+            frame.write_pdb(outfile, append);
         }
         else
         {
             if(append) sprintf(outfile, "traj_filtered.xyz");
             else sprintf(outfile, "frame_%05zd.xyz", traj.index());
-            traj->set_types();
-            traj->write_xyz(outfile, append);
+            frame.write_xyz(outfile, append);
         }
 
         /* advance to next frame */

@@ -124,6 +124,16 @@ class Timeseries
 
         double initial_time() const {return _initial_time;}
 
+        void push_back(T val)
+        {
+            _data.push_back(val);
+        }
+
+        void emplace_back(T&& val)
+        {
+            _data.emplace_back(val);
+        }
+
         void set_timestep(double timestep) {_timestep = timestep;}
 
         void set_comment(std::string comment)

@@ -15,45 +15,40 @@ int main(int argc, char **argv)
         cout << "  --step   <int>    (opt) only evaluate every step-th frame" << endl;
         cout << "  --offset <int>    (opt) number of lines to skip at the beginning" << endl;
         cout << "  --max    <int>    (opt) maximum frame to read" << endl;
+        cout << "  --ppm     <int>   particles_per_molecule" << '\n';
         exit(1);
     }
 
     // infile
     const char *infile  = argv[1];
-    // frames to skip at the beginning
-    const int offset    = atoi(couf::parse_arguments(argc, argv, "--offset"));
-    size_t max          = static_cast<size_t>(atoi(couf::parse_arguments(argc, argv, "--max")));
-    int step            = atoi(couf::parse_arguments(argc, argv, "--step"));
+    size_t particles_per_molecule {static_cast<size_t>(
+            atoi(couf::parse_arguments(argc, argv, "--ppm", "0")))};
 
-    if(step == 0) step = 1;
-    if(offset) cout << "Skipping " << offset << " frames." << endl;
-    if(!couf::is_given(argc, argv, "--max"))
-        max = std::numeric_limits<int>::max();
+    if(particles_per_molecule == 0)
+    {
+        cerr << "Warning: particles_per_molecule not given\n";
+    }
 
     char outfile[256];
 
-    Trajectory traj(infile);
-    traj.advance(offset);
+    Trajectory traj(infile, particles_per_molecule);
+    cout << "particles_per_molecule: " << traj->particles_per_molecule() << '\n';
+    cout << "number_of_molecules: " << traj->number_of_molecules() << '\n';
 
     /* loop through frames */
-    while(!traj.is_null() && traj.index() <= max)
+    while(!traj.is_null())
     {
         /* file output */
         sprintf(outfile, "multiplied_frame_%05zd.xyz", traj.index());
-        traj->multiply().write_xyz(outfile);
+        //traj->multiply().write_xyz(outfile);
+        Frame f = *traj;
+        f = f.multiply();
+        f.consistent();
+        f.write_xyz(outfile);
 
         /* advance to next frame */
-        traj += step;
+        traj.loop_advance(argc, argv);
     }
-    int frames_read = traj.index() - offset;
-    frames_read = frames_read / step + (frames_read % step != 0);
-
-    printf("\n");
-    printf("n_frames    = %zd\n", traj.index());
-    printf("step        = %d\n", step);
-    printf("offset      = %d\n", offset);
-    printf("frames_read = %d\n", frames_read);
-
     exit(0);
 }
 
