@@ -38,14 +38,14 @@ int main(int argc, char **argv)
     std::vector<Timeseries<std::vector<Real3D>>> vec 
         = traj.timeseries_set(
                 {&Molecule::end_to_end, &Molecule::center_of_mass},
-                step, max);
+                step, max
+                );
 
     // open outfile
     const char outfile_name[256] = "autocorrelation_function.dat";
     remove(outfile_name);
     FILE *outfile;
     outfile = fopen(outfile_name, "w");
-    fprintf(outfile, "# step C_ete C_rcm C_rouse0\n");
 
     for(size_t span = 0; span < vec[0].size(); ++span)
     {

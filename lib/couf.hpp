@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cfloat>
 #include <vector>
+#include <sstream>
 #include "Real3D.hpp"
 
 namespace couf
@@ -273,12 +274,12 @@ namespace couf
 
     //double minimum(double x1, double x2)
     //{
-        //return x1 < x2 ? x1 : x2;
+    //return x1 < x2 ? x1 : x2;
     //}
 
     //double maximum(double x1, double x2)
     //{
-        //return x1 > x2 ? x1 : x2;
+    //return x1 > x2 ? x1 : x2;
     //}
 
     /* compare functions for sorting with e.g. qsort()*/
@@ -363,68 +364,68 @@ namespace couf
     //const int n_points = 10;
     //void gsolve(double m[][n_points - 1], double *b, double *x, int n_points)
     //{
-        //int step, i, j, k, lne;
-        //double factor, temp;
+    //int step, i, j, k, lne;
+    //double factor, temp;
 
-        //for(step = 0; step < n_points; ++step)
-        //{
-            //[> move rows with leading zeros to the beginning <]
-            //for(i = 0; i < n_points; ++i)
-            //{
-                //if(m[i][step] == 0)
-                //{
-                    //[> for every column... <]
-                    //for(j = step; j < n_points; ++j)
-                    //{
-                        //temp = m[i][j];
+    //for(step = 0; step < n_points; ++step)
+    //{
+    //[> move rows with leading zeros to the beginning <]
+    //for(i = 0; i < n_points; ++i)
+    //{
+    //if(m[i][step] == 0)
+    //{
+    //[> for every column... <]
+    //for(j = step; j < n_points; ++j)
+    //{
+    //temp = m[i][j];
 
-                        //[> ...move preceding values in said column one up <]
-                        //for(k = i; k > 0; --k)
-                        //{
-                            //m[k][j] = m[k - 1][j];
-                        //}
-                        //m[0][j] = temp;
-                    //}
-                    //temp = b[i];
+    //[> ...move preceding values in said column one up <]
+    //for(k = i; k > 0; --k)
+    //{
+    //m[k][j] = m[k - 1][j];
+    //}
+    //m[0][j] = temp;
+    //}
+    //temp = b[i];
 
-                    //for(k = i; k > 0; --k)
-                    //{
-                        //b[k] = b[k - 1];
-                    //}
-                    //b[0] = temp;
-                //}
-            //}
+    //for(k = i; k > 0; --k)
+    //{
+    //b[k] = b[k - 1];
+    //}
+    //b[0] = temp;
+    //}
+    //}
 
-            //[> produce triangular form <]
-            //for(i = 0; i < n_points - step - 1; ++i)
-            //{
-                //if(m[i][step] != 0)
-                //{
-                    //factor = m[i][step] / m[i + 1][step];
+    //[> produce triangular form <]
+    //for(i = 0; i < n_points - step - 1; ++i)
+    //{
+    //if(m[i][step] != 0)
+    //{
+    //factor = m[i][step] / m[i + 1][step];
 
-                    ////m[i][step] = 0.; <- not really necessary
-                    ////step + 1
-                    //for(j = step; j < n_points; ++j)
-                    //{
-                        //m[i][j] -= factor * m[i + 1][j];
-                    //}
-                    //b[i] -= factor * b[i + 1];
-                //}
-            //}
-        //}
+    ////m[i][step] = 0.; <- not really necessary
+    ////step + 1
+    //for(j = step; j < n_points; ++j)
+    //{
+    //m[i][j] -= factor * m[i + 1][j];
+    //}
+    //b[i] -= factor * b[i + 1];
+    //}
+    //}
+    //}
 
-        //[> get solutions from triangular form <]
-        //for(i = n_points - 1; i >= 0; --i)
-        //{
-            //lne = n_points - i - 1;
-            //x[i] = b[lne];
+    //[> get solutions from triangular form <]
+    //for(i = n_points - 1; i >= 0; --i)
+    //{
+    //lne = n_points - i - 1;
+    //x[i] = b[lne];
 
-            //for(j = i + 1; j < n_points; ++j)
-            //{
-                //x[i] -= m[lne][j] * x[j];
-            //}
-            //x[i] /= m[lne][i];
-        //}
+    //for(j = i + 1; j < n_points; ++j)
+    //{
+    //x[i] -= m[lne][j] * x[j];
+    //}
+    //x[i] /= m[lne][i];
+    //}
     //}
 
     void print_vector_matrix(std::vector< std::vector<double> > A)
@@ -494,6 +495,39 @@ namespace couf
         return (T(0) < val) - (val < T(0));
     }
 
+    template <typename T> std::vector<T> read_column(std::ifstream & stream,
+            size_t column, size_t offset = 0)
+    {
+        std::vector<T> data;
+
+        size_t i = 0;
+        std::string str;
+        std::getline(stream, str);
+
+        while(i < offset)
+        {
+            while(str[0] == '#') std::getline(stream, str); // skip comments
+            std::getline(stream, str);
+            ++i;
+        }
+        do {
+            while(str[0] == '#') std::getline(stream, str); // skip comments
+            std::string buf;            // Have a buffer string
+            std::stringstream ss(str);  // Insert the string into a stream
+
+            ss >> buf;
+            // read value
+            for(size_t j = 0; j < column; ++j)
+            {
+                ss >> buf;
+            }
+            data.push_back(stod(buf));
+
+        } while (std::getline(stream, str));
+
+        return data;
+    }
+
     /* gets number of characters in buffer */
     unsigned int FileRead(std::istream &is, std::vector<char> &buff) 
     {
@@ -532,7 +566,7 @@ namespace couf
     /* count noncommented, nonempty lines in a file */
     int count_lines(const char* filename)
     {
-        int n = 0;
+        size_t n = 0;
         std::ifstream ifs(filename);
         std::string str;
 
@@ -547,6 +581,27 @@ namespace couf
                 ++n;
             }
         }
+        ifs.close();
+        return n;
+    }
+
+    int count_columns(const char* filename)
+    {
+        std::ifstream ifs(filename);
+        std::string str;
+        size_t n = 0;
+
+        std::getline(ifs, str); // get first line
+        while(str[0] == '#' || str[0] == '\0') std::getline(ifs, str); // skip comments
+        // count columns of first non-comment line
+        std::string buf;            // Have a buffer string
+        std::stringstream ss(str);  // Insert the string into a stream
+        while(ss >> buf)
+        {
+            ++n;
+        }
+
+        ifs.close();
         return n;
     }
 

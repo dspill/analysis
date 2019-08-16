@@ -20,7 +20,7 @@ enable_testing()
 set(CTEST_OUTPUT_ON_FAILURE 1)
 set(testbin test_suite/bin)
 file(MAKE_DIRECTORY ${testbin})
-set(test_programs frame minkowski molecule timeseries trajectory vector)
+set(test_programs frame minkowski molecule timeseries mctimeseries trajectory vector)
 
 foreach(tprog ${test_programs})
     add_test(compile_${tprog} make ${tprog})

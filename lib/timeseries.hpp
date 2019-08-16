@@ -19,7 +19,11 @@ class Timeseries
     public:
         Timeseries() {}
 
-        Timeseries(std::vector<T> data) : _data(data) {}
+        Timeseries(std::vector<T> data, 
+                double timestep = 0, 
+                double initial_time = 0,
+                std::string comment = "") : _data(data), _timestep(timestep),
+            _initial_time(initial_time), _comment(comment) {}
 
         Timeseries(const char * filename, size_t column = 1, size_t offset = 0)
         {

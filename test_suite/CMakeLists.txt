@@ -1,7 +1,7 @@
 set (CMAKE_BUILD_TYPE Debug)
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "bin")
 
-set(test_programs frame minkowski molecule timeseries trajectory vector)
+set(test_programs frame minkowski molecule mctimeseries timeseries trajectory vector)
 
 foreach(tprog ${test_programs})
     add_executable(${tprog} ${tprog}.cpp)
