@@ -44,7 +44,6 @@ int main(int argc, char **argv)
     int cg_factor       = atoi(couf::parse_arguments(argc, argv, "--cg", "1"));
     int fg_factor       = atoi(couf::parse_arguments(argc, argv, "--fg", "1"));
     bool natural_units  = atoi(couf::parse_arguments(argc, argv, "--natural_units", "0"));
-    double range        = atoi(couf::parse_arguments(argc, argv, "--range", "0"));
 
     if(couf::is_given(argc, argv, "--of"))
         strcpy(outfile, couf::parse_arguments(argc, argv, "--of"));
@@ -74,33 +73,42 @@ int main(int argc, char **argv)
     if(lattice_size % cg_factor != 0)
         throw runtime_error("Lattice_size must be divisible by cg_factor.\n");
 
-    ofstream stream(outfile);
-    stream << "# step V_0 V_1 V_2^(4) V_2^(8) V_3^(6) V_3^(26)\n";
-
     /* loop through frames */
     while(!traj.is_null())
     {
         cout << "reading frame " << traj.index() << '\n';
-        /* compute minkowski functionals */
-        array<double, 6> mfs = minkowski_functionals(
-                *traj, lattice_size, threshold, 'c', natural_units);
-
-        /* file output */
-        stream << fixed;
-        stream << scientific << setw(6);
-        stream << traj.index();
-
-        stream.precision(precision);
-        for(auto mf : mfs)
+        for(size_t cg = 1; cg <= 10; cg += 1)
         {
-            stream << scientific << setw(precision + 8) << mf;
+            for(double thr = 0.; thr <= 1.; thr += 0.05)
+            {
+                sprintf(outfile, "minkowski_functionals_fg%d_cg%zd_thr%3.2f.dat",
+                        fg_factor, cg, thr);
+                ofstream stream(outfile, ofstream::app);
+                if(traj.index() == 0)
+                    stream << "# step V_0 V_1 V_2^(4) V_2^(8) V_3^(6) V_3^(26)\n";
+
+                /* compute minkowski functionals */
+                array<double, 6> mfs = minkowski_functionals(
+                        *traj, lattice_size, thr, 'c', natural_units);
+
+                /* file output */
+                stream << fixed;
+                stream << scientific << setw(6);
+                stream << traj.index();
+
+                stream.precision(precision);
+                for(auto mf : mfs)
+                {
+                    stream << scientific << setw(precision + 8) << mf;
+                }
+                //stream << '\n';
+                stream << endl;
+                stream.close();
+            }
         }
-        //stream << '\n';
-        stream << endl;
 
         /* advance to next frame */
         traj.loop_advance(argc, argv);
     }
-    stream.close();
     exit(0);
 }

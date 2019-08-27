@@ -16,9 +16,7 @@
 #include "Real3D.hpp"
 #include "couf.hpp"
 
-/** @file molecule.hpp */
-
-/**
+/** @file molecule.hpp 
  * Contains references to molecule coordinates and several analysis functions 
  * for molecule based observables.
  */

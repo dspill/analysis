@@ -24,5 +24,5 @@ int main()
         v.emplace_back(Timeseries<double>("dummy.dat", i));
         assert(v[i] == ts.timeseries(i));
     }
-        cout << "===== MCTimeseries clear =====\n";
+    cout << "===== MCTimeseries clear =====\n";
 }
