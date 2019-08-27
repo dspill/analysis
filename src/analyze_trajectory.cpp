@@ -1,5 +1,10 @@
+#include <iomanip>
 #include "trajectory.hpp"
 #include "couf.hpp"
+#include "limits.h"
+#include <algorithm>    // sort
+
+#define QMAX 10.
 
 using namespace std;
 
@@ -10,59 +15,100 @@ int main(int argc, char **argv)
         cout << "Usage: " << '\n';
         cout << argv[0] << '\n';
         cout << "  <char*> infile" << '\n';
-        cout << "  --ppm     <int>   particles_per_molecule" << '\n';
-        cout << "  -o        <char*> (opt) output file" << '\n';
-        cout << "  --step    <int>   (opt) only evaluate every step-th frame"
+        cout << "  --of     <char*>  (opt) outfile name" << '\n';
+        cout << "  --thr    <double> (opt) threshold" << '\n';
+        cout << "  --cg     <int>    (opt) factor by which the lattice is "
+            "coarse grained" << '\n';
+        cout << "  --fg     <int>    (opt) factor by which the lattice is "
+            "fine grained" << '\n';
+        cout << "  --step   <int>    (opt) only evaluate every step-th frame"
             << '\n';
-        cout << "  --dt      <double>(opt) timestep" << '\n';
-        cout << "  --cf_step <int>   (opt) take steps of cf_step when "
-            "evaluating." << '\n';
-        cout << "  --offset  <int>   (opt) number of lines to skip at the "
+        cout << "  --offset <int>    (opt) number of lines to skip at the "
             "beginning" << '\n';
+        cout << "  --max    <int>    (opt) highest number of frame to read" 
+            << '\n';
+        cout << "  --exp    <double>\n";
+        cout << "  --natural_units <bool>\n";
         exit(1);
     }
 
-    // infile
-    const char * infile {argv[1]};
-    const char * outfile = couf::parse_arguments(argc, argv, "-o");
-    size_t particles_per_molecule {static_cast<size_t>(
-            atoi(couf::parse_arguments(argc, argv, "--ppm")))};
-    size_t step        {static_cast<size_t>(
-            atoi(couf::parse_arguments(argc, argv, "--step")))};
-    double timestep    {atof(couf::parse_arguments(argc, argv, "--dt"))};
-    size_t max         {static_cast<size_t>(atoi(couf::parse_arguments(argc,
-                    argv, "--max")))};
-    const int offset   {atoi(couf::parse_arguments(argc, argv, "--offset"))};
+    constexpr size_t precision = 10;
 
-    if(outfile[0] == '0') outfile = "traj_timeseries.dat";
-    if(particles_per_molecule == 0)
-    {
-        throw runtime_error("You have to give the number of particles per "
-                "molecule.");
-    }
-    if(step == 0) step = 1;
-    if(timestep == 0.) timestep = 1.;
-    //if(offset) cout << "Skipping " << offset << " frames." << '\n';
-    if(!couf::is_given(argc, argv, "--max")) max = std::numeric_limits<size_t>::max();
+    // infile
+    const char *infile  = argv[1];
+    // outfile
+    char outfile[256];
+
+    // frames to skip at the beginning
+    double threshold    = atof(couf::parse_arguments(argc, argv, "--thr", "-1"));
+    int cg_factor       = atoi(couf::parse_arguments(argc, argv, "--cg", "1"));
+    int fg_factor       = atoi(couf::parse_arguments(argc, argv, "--fg", "1"));
+    bool natural_units  = atoi(couf::parse_arguments(argc, argv, "--natural_units", "0"));
+
+    if(couf::is_given(argc, argv, "--of"))
+        strcpy(outfile, couf::parse_arguments(argc, argv, "--of"));
+    else
+        sprintf(outfile, "minkowski_functionals_fg%d_cg%d_thr%3.2f.dat",
+                fg_factor, cg_factor, threshold);
+
+    const double lattice_constant = (double) cg_factor / fg_factor;
+
     /* ----------- input done ---------- */
 
-    // open infile
-    Trajectory traj{infile, particles_per_molecule};
-    traj.advance(offset);
-    cout << traj->mean(&Molecule::end_to_end_squared);
-    exit(0);
+    Trajectory traj{infile};
 
-    //auto ts = traj.timeseries(&Molecule::ete_sq_by_r_gyr_sq, step, max);
-    auto ts1 = traj.timeseries(&Molecule::end_to_end_squared, step, max);
-    auto ts2 = traj.timeseries(&Molecule::radius_of_gyration_squared, step, max);
-    ts1.set_timestep(timestep);
-    ts2.set_timestep(timestep);
+    cout << "infile:    " << infile << '\n';
+    cout << "threshold: " << threshold << '\n';
+    cout << "cg_factor: " << cg_factor << '\n';
+    cout << "fg_factor: " << fg_factor << '\n';
 
-    //ts1.write_row_mean(outfile);
-    cout.precision(10);
-    cout << scientific << couf::mean(ts1.mean())/couf::mean(ts2.mean()) << '\n';
-    //<< ' ' << scientific << couf::stddev(ts1.mean()) << '\n';
+    /* get lattice size */
+    const size_t original_lattice_size = round(traj->box()[0]);
+    const size_t lattice_size = round(original_lattice_size / lattice_constant);
 
+    cout << "original lattice size = " << original_lattice_size << '\n';
+    cout << "scaled lattice size   = " << lattice_size << '\n';
+    cout << "lattice constant      = " << lattice_constant << '\n';
 
+    if(lattice_size % cg_factor != 0)
+        throw runtime_error("Lattice_size must be divisible by cg_factor.\n");
+
+    /* loop through frames */
+    while(!traj.is_null())
+    {
+        cout << "reading frame " << traj.index() << '\n';
+        for(size_t cg = 1; cg <= 10; cg += 1)
+        {
+            for(double thr = 0.; thr <= 1.; thr += 0.05)
+            {
+                sprintf(outfile, "minkowski_functionals_fg%d_cg%zd_thr%3.2f.dat",
+                        fg_factor, cg, thr);
+                ofstream stream(outfile, ofstream::app);
+                if(traj.index() == 0)
+                    stream << "# step V_0 V_1 V_2^(4) V_2^(8) V_3^(6) V_3^(26)\n";
+
+                /* compute minkowski functionals */
+                array<double, 6> mfs = minkowski_functionals(
+                        *traj, lattice_size, thr, 'c', natural_units);
+
+                /* file output */
+                stream << fixed;
+                stream << scientific << setw(6);
+                stream << traj.index();
+
+                stream.precision(precision);
+                for(auto mf : mfs)
+                {
+                    stream << scientific << setw(precision + 8) << mf;
+                }
+                //stream << '\n';
+                stream << endl;
+                stream.close();
+            }
+        }
+
+        /* advance to next frame */
+        traj.loop_advance(argc, argv);
+    }
     exit(0);
 }
