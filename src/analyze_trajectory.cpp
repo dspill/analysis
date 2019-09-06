@@ -2,7 +2,9 @@
 #include "trajectory.hpp"
 #include "couf.hpp"
 #include "limits.h"
+#include "fftw3.h"
 #include <algorithm>    // sort
+#include <sys/stat.h>  // mkdir
 
 #define QMAX 10.
 
@@ -15,7 +17,6 @@ int main(int argc, char **argv)
         cout << "Usage: " << '\n';
         cout << argv[0] << '\n';
         cout << "  <char*> infile" << '\n';
-        cout << "  --of     <char*>  (opt) outfile name" << '\n';
         cout << "  --thr    <double> (opt) threshold" << '\n';
         cout << "  --cg     <int>    (opt) factor by which the lattice is "
             "coarse grained" << '\n';
@@ -44,18 +45,16 @@ int main(int argc, char **argv)
     int cg_factor       = atoi(couf::parse_arguments(argc, argv, "--cg", "1"));
     int fg_factor       = atoi(couf::parse_arguments(argc, argv, "--fg", "1"));
     bool natural_units  = atoi(couf::parse_arguments(argc, argv, "--natural_units", "0"));
+    double bin_width    = atof(couf::parse_arguments(argc, argv, "--bw"));
 
-    if(couf::is_given(argc, argv, "--of"))
-        strcpy(outfile, couf::parse_arguments(argc, argv, "--of"));
-    else
-        sprintf(outfile, "minkowski_functionals_fg%d_cg%d_thr%3.2f.dat",
-                fg_factor, cg_factor, threshold);
-
-    const double lattice_constant = (double) cg_factor / fg_factor;
-
-    /* ----------- input done ---------- */
 
     Trajectory traj{infile};
+    const double q_min = 2.*M_PI / std::min(traj->box()[0], 
+            std::min(traj->box()[1], traj->box()[2]));
+    if(bin_width == 0.0) bin_width = q_min;
+    if(bin_width < q_min)
+        throw runtime_error("Bin-size is too small");
+    /* ----------- input done ---------- */
 
     cout << "infile:    " << infile << '\n';
     cout << "threshold: " << threshold << '\n';
@@ -64,32 +63,52 @@ int main(int argc, char **argv)
 
     /* get lattice size */
     const size_t original_lattice_size = round(traj->box()[0]);
-    const size_t lattice_size = round(original_lattice_size / lattice_constant);
 
-    cout << "original lattice size = " << original_lattice_size << '\n';
-    cout << "scaled lattice size   = " << lattice_size << '\n';
-    cout << "lattice constant      = " << lattice_constant << '\n';
-
-    if(lattice_size % cg_factor != 0)
-        throw runtime_error("Lattice_size must be divisible by cg_factor.\n");
+    if(!mkdir("./dsf", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) ||
+    !mkdir("./minkowski", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
+    {
+        throw std::runtime_error("could not create directory/directories");
+    }
 
     /* loop through frames */
+    double lattice_constant;
+    size_t lattice_size;
     while(!traj.is_null())
     {
         cout << "reading frame " << traj.index() << '\n';
-        for(size_t cg = 1; cg <= 10; cg += 1)
+        lattice_constant = (double) cg_factor / fg_factor;
+        lattice_size = round(original_lattice_size / lattice_constant);
+        Frame f = *traj;
+
+        /* compute structure factor */
+        vector<vector<double>> struc_fac =
+            structure_factor(f, lattice_size, lattice_constant, bin_width, 
+                    traj->size());
+
+        sprintf(outfile, "./dsf/dsf_%05zd.dat", traj.index());
+        couf::write_to_file(struc_fac, outfile);
+
+        vector<double> thresholds{.6, .7, .8, .9, 1., 1.1, 1.2, 1.3, 1.4};
+        vector<double> cgs {1, 2, 4, 8};
+        for(const size_t& cg : cgs)
         {
-            for(double thr = 0.; thr <= 1.; thr += 0.05)
+            for(const double& thr : thresholds)
             {
-                sprintf(outfile, "minkowski_functionals_fg%d_cg%zd_thr%3.2f.dat",
-                        fg_factor, cg, thr);
+                lattice_constant = (double) cg;
+                lattice_size = round(original_lattice_size / lattice_constant);
+
+                sprintf(outfile,
+                        "./minkowski/minkowski_functionals_fg%d_cg%zd_thr%3.2f.dat",
+                        1, cg, thr);
+                if(traj.index() == 0) 
+                {
+                    remove(outfile);
+                }
                 ofstream stream(outfile, ofstream::app);
-                if(traj.index() == 0)
-                    stream << "# step V_0 V_1 V_2^(4) V_2^(8) V_3^(6) V_3^(26)\n";
 
                 /* compute minkowski functionals */
                 array<double, 6> mfs = minkowski_functionals(
-                        *traj, lattice_size, thr, 'c', natural_units);
+                        f, lattice_size, thr, 'c', natural_units);
 
                 /* file output */
                 stream << fixed;

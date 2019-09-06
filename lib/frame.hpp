@@ -1654,12 +1654,18 @@ std::vector<double>  mean_structure_factor(const Frame & frame, const double q,
  * @param[in] lattice_size linear lattice size of the interpolation lattice
  * @param[in] threshold lattice sites with density >= threshold will be
  * interpreted as 'black'.
+ * @param[in] natural_units normalize results by appropriate power of
+ * lattice_size in order to make it dimensionless
  */
 template<typename T>
 std::array<double, 6> minkowski_functionals(const T input, 
         const size_t lattice_size, const double threshold = -1., 
         const char norm='n', const bool natural_units=false)
 {
+    //std::cout << "Calculating Minkowski " << input << " latsi " << lattice_size 
+        //<< " thr  " << threshold << " norm  " << norm 
+        //<< " natu " << natural_units << '\n';
+
     if(typeid(T) != typeid(Frame) && typeid(T) != typeid(const char *))
         throw std::runtime_error("Incompatible input type.\n");
 
@@ -1962,7 +1968,10 @@ std::array<double, 6> minkowski_functionals(const T input,
 
     double new_threshold{0.};
     if(threshold < 0.) new_threshold = mean_density;
-    else new_threshold = threshold;
+    else new_threshold = mean_density * threshold;
+
+    //std::cout << "mean_density = " << mean_density << '\n';
+    //std::cout << "new_threshold = " << new_threshold << '\n';
 
     // loop over lattice centers
     size_t xn, yn, zn, i_neigh, linear_neigh, config, tag, n_black{0};
@@ -2046,7 +2055,7 @@ std::array<double, 6> minkowski_functionals(const T input,
         result[0] /= pow(lattice_size, 3);
         result[1] /= pow(lattice_size, 2);
         result[2] /= lattice_size;
-        result[3] /= lattice_size;
+        //result[3] /= lattice_size;
     }
 
 

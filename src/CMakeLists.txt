@@ -29,3 +29,4 @@ endforeach()
 
 target_link_libraries(dynamic_structure_factor_from_lattice fftw3)
 target_link_libraries(dynamic_structure_factor fftw3)
+target_link_libraries(analyze_trajectory fftw3)

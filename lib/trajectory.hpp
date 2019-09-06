@@ -166,8 +166,19 @@ class Trajectory
             // advance exponentially
             if(exponent)
             {
+                size_t ds = 0;
                 if(ndx == 0) advance();
-                else advance(ceil(ndx * (pow(10, exponent) - 1)));
+                else 
+                {
+                    ds = ceil(ndx * (pow(2, exponent) - 1));
+                    if(index() + ds > max)
+                    {
+                        _stream.setstate(std::ios_base::eofbit);
+                        return;
+                    }
+                    advance(ds);   
+                }
+                //else advance(ceil(ndx * (pow(10, exponent) - 1)));
             }
             // advance linearly
             else advance(step);
