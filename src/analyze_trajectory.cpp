@@ -3,7 +3,7 @@
 #include "couf.hpp"
 #include "limits.h"
 #include "fftw3.h"
-#include <algorithm>    // sort
+#include <algorithm>   // sort
 #include <sys/stat.h>  // mkdir
 
 #define QMAX 10.

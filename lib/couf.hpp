@@ -10,10 +10,29 @@
 #include <cfloat>
 #include <vector>
 #include <sstream>
+#include <dirent.h>
 #include "Real3D.hpp"
 
 namespace couf
 {
+    bool is_directory( const char* pzPath )
+    {
+        if ( pzPath == NULL) return false;
+
+        DIR *pDir;
+        bool bExists = false;
+
+        pDir = opendir (pzPath);
+
+        if (pDir != NULL)
+        {
+            bExists = true;    
+            (void) closedir (pDir);
+        }
+
+        return bExists;
+    }
+
     int my_assert(bool condition)
     {
         if(condition) return 0;
