@@ -3,7 +3,6 @@
 #include <ctime>
 #include <algorithm>
 #include <cassert>
-#include <boost/timer.hpp>
 
 #define DEBUG
 

@@ -1,7 +1,6 @@
 #include "trajectory.hpp"
 #include <ctime>
 #include <algorithm>
-#include <boost/timer.hpp>
 #include <cassert>
 
 #define DEBUG

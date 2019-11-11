@@ -1,7 +1,6 @@
 #include "trajectory.hpp"
 #include <ctime>
 #include <algorithm>
-#include <boost/timer.hpp>
 
 #define DEBUG
 
@@ -984,8 +983,6 @@ int main()
     cout << "===== ALL CLEAR =====\n";
 
     // TODO test timeseries
-    //boost::timer t;
-    //cout << "time: " << t.elapsed() << '\n';
     return 0;
 }
 
