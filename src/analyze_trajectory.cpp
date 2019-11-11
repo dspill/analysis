@@ -64,10 +64,14 @@ int main(int argc, char **argv)
     /* get lattice size */
     const size_t original_lattice_size = round(traj->box()[0]);
 
-    if(!mkdir("./dsf", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) ||
-    !mkdir("./minkowski", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
+    for(auto dirname : vector<const char*>{"./dsf", "./mnk"})
     {
-        throw std::runtime_error("could not create directory/directories");
+        if(mkdir(dirname, 0777) == -1)
+            //throw std::runtime_error(sprintf("could not create directory %s", dirname));
+            throw std::runtime_error(string("could not create directory")
+                    + string(dirname));
+        else
+            cout << "created directory " << dirname << '\n';
     }
 
     /* loop through frames */
@@ -98,7 +102,7 @@ int main(int argc, char **argv)
                 lattice_size = round(original_lattice_size / lattice_constant);
 
                 sprintf(outfile,
-                        "./minkowski/minkowski_functionals_fg%d_cg%zd_thr%3.2f.dat",
+                        "./mnk/minkowski_functionals_fg%d_cg%zd_thr%3.2f.dat",
                         1, cg, thr);
                 if(traj.index() == 0) 
                 {

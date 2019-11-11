@@ -2,6 +2,7 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin")
 file(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 set(programs 
+    analyze
     analyze_lb
     analyze_timeseries 
     analyze_trajectory 
@@ -29,4 +30,5 @@ endforeach()
 
 target_link_libraries(dynamic_structure_factor_from_lattice fftw3)
 target_link_libraries(dynamic_structure_factor fftw3)
+target_link_libraries(analyze fftw3)
 target_link_libraries(analyze_trajectory fftw3)

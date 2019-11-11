@@ -28,5 +28,6 @@ int main()
     foo("Hello world", 1);
     foo(string("Hello world"), 2);
     foo(123);
+    foo(123);
 }
 

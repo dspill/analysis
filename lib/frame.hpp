@@ -1999,13 +1999,11 @@ std::array<double, 6> minkowski_functionals(const T input,
     /* read lattice with function that is suitable for type of input */
     const double mean_density = read_lattice(input, lattice.get(), lattice_size)
         / number_of_sites;
+    if (mean_density < 10e-14) return {0., 0., 0., 0., 0., 0.};
 
     double new_threshold{0.};
     if(threshold < 0.) new_threshold = mean_density;
     else new_threshold = mean_density * threshold;
-
-    //std::cout << "mean_density = " << mean_density << '\n';
-    //std::cout << "new_threshold = " << new_threshold << '\n';
 
     // loop over lattice centers
     size_t xn, yn, zn, i_neigh, linear_neigh, config, tag, n_black{0};

@@ -5,6 +5,7 @@ set(test_programs frame minkowski molecule mctimeseries timeseries trajectory ve
 
 foreach(tprog ${test_programs})
     add_executable(${tprog} ${tprog}.cpp)
+    target_link_libraries(${tprog} fftw3)
 endforeach()
 
 if(NOT TARGET test_suite)
