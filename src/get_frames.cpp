@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     const bool write_vtk = atoi(couf::parse_arguments(argc, argv, "--vtk"));
     const bool write_pdb = atoi(couf::parse_arguments(argc, argv, "--pdb"));
     const int  set_types = atoi(couf::parse_arguments(argc, argv, "--set_types"));
-    const double  slice  = atoi(couf::parse_arguments(argc, argv, "--slice"));
+    const double  slice  = atoi(couf::parse_arguments(argc, argv, "--slice", "1.5"));
     size_t particles_per_molecule {static_cast<size_t>(
             atoi(couf::parse_arguments(argc, argv, "--ppm")))};
 

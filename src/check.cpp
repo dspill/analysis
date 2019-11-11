@@ -1,30 +1,32 @@
-#include <iomanip>
-#include "trajectory.hpp"
-#include "couf.hpp"
+#include <iostream>
 
 using namespace std;
 
-int main(int argc, char **argv)
+template<typename T>
+void foo(T x, int y=1)
 {
-    // infile
-    const char *infile  = argv[1];
-    // frames to skip at the beginning
+    cout << "generic version:\n";
+    cout << x << y << '\n';
+}
 
-    char outfile[256];
-    sprintf(outfile, "test_%s", infile);
-    remove(outfile);
+template<>
+void foo<int>(int x, int y)
+{
+    cout << "integer version:\n";
+    cout << x << y << '\n';
+}
 
-    Trajectory traj(infile, particles_per_molecule);
+template<>
+void foo<string>(string x, int y)
+{
+    cout << "string version:\n";
+    cout << x << y << '\n';
+}
 
-    /* loop through frames */
-    while(!traj.is_null())
-    {
-        printf("\rprocessing frame %zd ", traj.index());
-        cout.flush();
-
-        /* advance to next frame */
-        traj.loop_advance(argc, argv);
-    }
-    exit(0);
+int main()
+{
+    foo("Hello world", 1);
+    foo(string("Hello world"), 2);
+    foo(123);
 }
 

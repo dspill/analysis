@@ -17,6 +17,7 @@ int main(int argc, char **argv)
         cout << "  --step   <int>    (opt) only evaluate every step-th frame" << '\n';
         cout << "  --offset <int>    (opt) number of lines to skip at the beginning" << '\n';
         cout << "  --max    <int>    (opt) maximum frame to read" << '\n';
+        cout << "  --exp    <double>\n";
         exit(1);
     }
 
@@ -31,11 +32,12 @@ int main(int argc, char **argv)
     sprintf(outfile, "sliced_%s", infile);
     remove(outfile);
 
-    Trajectory traj(infile, particles_per_molecule);
 
     /* loop through frames */
     Frame slice;
-    while(!traj.is_null())
+    for(Trajectory traj(infile, particles_per_molecule);
+            !traj.is_null();
+            traj.loop_advance(argc, argv))
     {
         printf("\rprocessing frame %zd ", traj.index());
         cout.flush();
@@ -43,10 +45,6 @@ int main(int argc, char **argv)
         /* file output */
         traj->set_types();
         (traj->slice_square(thickness)).write_xyz(outfile, true);
-
-
-        /* advance to next frame */
-        traj.loop_advance(argc, argv);
     }
     exit(0);
 }

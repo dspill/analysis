@@ -196,11 +196,12 @@ class Frame
             std::string buf;            // Have a buffer string
             std::stringstream ss0(str);  // Insert the string into a stream
             ss0 >> buf;
-            _box[0] = stod(buf);
+            _box[0] = stod(buf); // x
             ss0 >> buf;
-            _box[1] = stod(buf);
+            _box[1] = stod(buf); // y
             ss0 >> buf;
-            _box[2] = stod(buf);
+            _box[2] = stod(buf); // z
+            // ignore rest of the line if there is any
 
             // iterate coordinates and eventually velocities
             Real3D vec;
@@ -1453,6 +1454,8 @@ std::vector<std::vector<double>> linearize_lattice(const fftw_complex
 }
 
 /**
+ * Implementation for frame or file as input
+ * 
  * Calculate the structure factor of a frame.
  * The configuration is first mapped to a density map on a lattice. Then a
  * Fourier transform of the lattice is performed. This gives the structure
@@ -1468,18 +1471,56 @@ std::vector<std::vector<double>> linearize_lattice(const fftw_complex
  * @return vector of pairs (q, S(q)).
  */
 template<typename T>
-std::vector<std::vector<double>> structure_factor(const T input, const size_t
-        lattice_size, const double lattice_constant, const double bin_width =
-        0.1, const double norm = 1.)
+std::vector<std::vector<double>>
+structure_factor(const T input, const size_t lattice_size, const double
+        lattice_constant, const double bin_width = 0.1, const double norm = 1.)
 {
     if(typeid(T) != typeid(Frame) && typeid(T) != typeid(const char *))
         throw std::runtime_error("Incompatible input type.\n");
 
+    /* allocate space for lattice */
     const size_t number_of_sites = pow(lattice_size, 3);
+    std::unique_ptr<double>
+        lattice{fftw_alloc_real(number_of_sites * sizeof(double))};
+    std::fill(lattice.get(), lattice.get() + number_of_sites, 0.);
+
+    /* read lattice with function that is suitable for type of input */
+    read_lattice(input, lattice.get(), lattice_size);
+
+    return structure_factor(move(lattice), lattice_size, lattice_constant,
+            bin_width, norm);
+
+}
+
+/**
+ * Implementation for lattice as input. This is an explicit template
+ * specialization for the case T=std::unique_ptr<double>. Here we do not need
+ * to specify default arguments as they are adopted from the general
+ * implementation.
+ *
+ * Calculate the structure factor of a frame.
+ * The configuration is first mapped to a density map on a lattice. Then a
+ * Fourier transform of the lattice is performed. This gives the structure
+ * factor depending on VECTOR q. The lattice is then linearized to obtain
+ * the dependence on the absolute value of q.
+ * @param[in] input configuration that has been mapped onto a lattice
+ * a filename.
+ * @param[in] bin_width bin width
+ * @param[in] lattice_size linear lattice size
+ * @param[in] lattice_constant lattice constant
+ * @param[in] bin_width bin width
+ * @param[in] norm normalization constant
+ * @return vector of pairs (q, S(q)).
+ */
+template<>
+std::vector<std::vector<double>> structure_factor< std::unique_ptr<double> >
+(std::unique_ptr<double> lattice, const size_t lattice_size, const double
+ lattice_constant, const double bin_width, const double norm)
+{
     const size_t reduced_number_of_sites = pow(lattice_size, 2) *
         (lattice_size / 2 + 1);
 
-    /* allocate space for lattices */
+    /* allocate space for transformed lattice */
     std::unique_ptr<fftw_complex> lattice_transformed{
         fftw_alloc_complex(reduced_number_of_sites * sizeof(fftw_complex))
     };
@@ -1491,17 +1532,10 @@ std::vector<std::vector<double>> structure_factor(const T input, const size_t
     //memset(lattice_transformed.get(), 0.,
     //2*reduced_number_of_sites*sizeof(double)); // TODO
 
-    std::unique_ptr<double>
-        lattice{fftw_alloc_real(number_of_sites * sizeof(double))};
-    std::fill(lattice.get(), lattice.get() + number_of_sites, 0.);
-
     /* generate fftw plan */
     fftw_plan plan = fftw_plan_dft_r2c_3d(lattice_size, lattice_size,
             lattice_size, lattice.get(), lattice_transformed.get(),
             FFTW_ESTIMATE); // TODO inplace?
-
-    /* read lattice with function that is suitable for type of input */
-    read_lattice(input, lattice.get(), lattice_size);
 
     /* do the transformation */
     fftw_execute(plan);
