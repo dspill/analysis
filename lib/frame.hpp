@@ -3,7 +3,7 @@
 #include "molecule.hpp"
 #include "fftw3.h"
 #include <typeinfo>
-#include <memory>
+#include <memory> // unique_ptr
 #include <random>
 #include <set>
 #include <iomanip>
@@ -1480,16 +1480,16 @@ structure_factor(const T input, const size_t lattice_size, const double
 
     /* allocate space for lattice */
     const size_t number_of_sites = pow(lattice_size, 3);
-    std::unique_ptr<double>
-        lattice{fftw_alloc_real(number_of_sites * sizeof(double))};
-    std::fill(lattice.get(), lattice.get() + number_of_sites, 0.);
+    double* lattice = (double*) fftw_alloc_real(number_of_sites * sizeof(double));
+    std::fill(lattice, lattice + number_of_sites, 0.);
 
     /* read lattice with function that is suitable for type of input */
-    read_lattice(input, lattice.get(), lattice_size);
+    read_lattice(input, lattice, lattice_size);
 
-    return structure_factor(move(lattice), lattice_size, lattice_constant,
-            bin_width, norm);
-
+    std::vector<std::vector<double>> sfac =  structure_factor(lattice,
+            lattice_size, lattice_constant, bin_width, norm);
+    fftw_free(lattice);
+    return sfac;
 }
 
 /**
@@ -1499,8 +1499,7 @@ structure_factor(const T input, const size_t lattice_size, const double
  * implementation.
  *
  * Calculate the structure factor of a frame.
- * The configuration is first mapped to a density map on a lattice. Then a
- * Fourier transform of the lattice is performed. This gives the structure
+ * A Fourier transform of the lattice is performed. This gives the structure
  * factor depending on VECTOR q. The lattice is then linearized to obtain
  * the dependence on the absolute value of q.
  * @param[in] input configuration that has been mapped onto a lattice
@@ -1513,35 +1512,29 @@ structure_factor(const T input, const size_t lattice_size, const double
  * @return vector of pairs (q, S(q)).
  */
 template<>
-std::vector<std::vector<double>> structure_factor< std::unique_ptr<double> >
-(std::unique_ptr<double> lattice, const size_t lattice_size, const double
+std::vector<std::vector<double>> structure_factor<double*>
+(double* lattice, const size_t lattice_size, const double
  lattice_constant, const double bin_width, const double norm)
 {
     const size_t reduced_number_of_sites = pow(lattice_size, 2) *
         (lattice_size / 2 + 1);
 
     /* allocate space for transformed lattice */
-    std::unique_ptr<fftw_complex> lattice_transformed{
-        fftw_alloc_complex(reduced_number_of_sites * sizeof(fftw_complex))
-    };
-    for(size_t i = 0; i < reduced_number_of_sites; ++i)
-    {
-        lattice_transformed.get()[i][0] = 0.;
-        lattice_transformed.get()[i][1] = 0.;
-    }
-    //memset(lattice_transformed.get(), 0.,
-    //2*reduced_number_of_sites*sizeof(double)); // TODO
+    fftw_complex* lattice_transformed = (fftw_complex*)
+        fftw_alloc_complex(reduced_number_of_sites * sizeof(fftw_complex));
+    memset(lattice_transformed, 0., 2*reduced_number_of_sites*sizeof(double));
 
     /* generate fftw plan */
     fftw_plan plan = fftw_plan_dft_r2c_3d(lattice_size, lattice_size,
-            lattice_size, lattice.get(), lattice_transformed.get(),
-            FFTW_ESTIMATE); // TODO inplace?
+            lattice_size, lattice, lattice_transformed, FFTW_ESTIMATE); // TODO inplace?
 
     /* do the transformation */
     fftw_execute(plan);
 
-    return linearize_lattice(lattice_transformed.get(), lattice_size,
+    auto lin_lat = linearize_lattice(lattice_transformed, lattice_size,
             lattice_constant, bin_width, norm);
+    fftw_free(lattice_transformed);
+    return lin_lat;
 }
 
 /**

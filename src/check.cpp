@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory> // unique_ptr
 
 using namespace std;
 
@@ -29,5 +30,9 @@ int main()
     foo(string("Hello world"), 2);
     foo(123);
     foo(123);
+
+    unique_ptr<int> up{new int[123]};
+
+
 }
 
