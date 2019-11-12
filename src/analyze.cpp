@@ -80,14 +80,24 @@ int main(int argc, char **argv)
     size_t lattice_size;
     while(!traj.is_null())
     {
+        /* read frame */
         cout << "reading frame " << traj.index() << '\n';
         lattice_constant = (double) cg_factor / fg_factor;
         lattice_size = round(original_lattice_size / lattice_constant);
         Frame f = *traj;
 
+        /* allocate lattice */
+        const size_t number_of_sites = pow(lattice_size, 3);
+        double* lattice = 
+            (double*) fftw_alloc_real(number_of_sites * sizeof(double));
+        std::fill(lattice, lattice + number_of_sites, 0.);
+        read_lattice(f, lattice, lattice_size);
+        /* delete contents of f */
+        f.clear();
+
         /* compute structure factor */
         vector<vector<double>> struc_fac =
-            structure_factor(f, lattice_size, lattice_constant, bin_width, 
+            structure_factor(lattice, lattice_size, lattice_constant, bin_width, 
                     traj->size());
 
         sprintf(outfile, "./dsf/dsf_%05zd.dat", traj.index());
@@ -114,7 +124,7 @@ int main(int argc, char **argv)
 
                 /* compute minkowski functionals */
                 array<double, 6> mfs = minkowski_functionals(
-                        f, lattice_size, thr, 'c', natural_units);
+                        lattice, lattice_size, thr, 'c', natural_units);
 
                 /* file output */
                 stream << fixed;
@@ -131,6 +141,7 @@ int main(int argc, char **argv)
                 stream.close();
             }
         }
+        fftw_free(lattice);
 
         /* advance to next frame */
         traj.loop_advance(argc, argv);

@@ -513,8 +513,8 @@ class Frame
                 auto crd = *it;
                 *it = Real3D{
                     crd * Real3D{ 1,  0,  0},
-                    crd * Real3D{ 0,  c, -s},
-                    crd * Real3D{ 0,  s,  c}
+                        crd * Real3D{ 0,  c, -s},
+                        crd * Real3D{ 0,  s,  c}
                 };
             }
         }
@@ -529,8 +529,8 @@ class Frame
                 auto crd = *it;
                 *it = Real3D{
                     crd * Real3D{ c,  0,  s},
-                    crd * Real3D{ 0,  1,  0},
-                    crd * Real3D{-s,  0,  c}
+                        crd * Real3D{ 0,  1,  0},
+                        crd * Real3D{-s,  0,  c}
                 };
             }
         }
@@ -545,8 +545,8 @@ class Frame
                 auto crd = *it;
                 *it = Real3D{
                     crd * Real3D{ c, -s,  0},
-                    crd * Real3D{ s,  c,  0},
-                    crd * Real3D{ 0,  0,  1}
+                        crd * Real3D{ s,  c,  0},
+                        crd * Real3D{ 0,  0,  1}
                 };
             }
         }
@@ -566,8 +566,8 @@ class Frame
                 auto crd = *it;
                 *it = Real3D{
                     crd * Real3D{x*x*omc+c,   x*y*omc-z*s, x*z*omc+y*s},
-                    crd * Real3D{x*y*omc+z*s, y*y*omc+c,   y*z*omc-x*s},
-                    crd * Real3D{x*z*omc-y*s, y*z*omc+x*s, z*z*omc+c}
+                        crd * Real3D{x*y*omc+z*s, y*y*omc+c,   y*z*omc-x*s},
+                        crd * Real3D{x*z*omc-y*s, y*z*omc+x*s, z*z*omc+c}
                 };
             }
         }
@@ -1196,8 +1196,6 @@ double read_lattice(const Frame & frame, double *lattice, const size_t
                     weight = (1. - dx)*(1. - dy)*(1. - dz);
                     norm += weight;
 
-                    assert(weight >= 0. && weight <= 1.);
-
                     lattice[index] += weight;
 
                     if(velocity_lattice != nullptr)
@@ -1494,7 +1492,7 @@ structure_factor(const T input, const size_t lattice_size, const double
 
 /**
  * Implementation for lattice as input. This is an explicit template
- * specialization for the case T=std::unique_ptr<double>. Here we do not need
+ * specialization for the case T=double*. Here we do not need
  * to specify default arguments as they are adopted from the general
  * implementation.
  *
@@ -1531,8 +1529,9 @@ std::vector<std::vector<double>> structure_factor<double*>
     /* do the transformation */
     fftw_execute(plan);
 
-    auto lin_lat = linearize_lattice(lattice_transformed, lattice_size,
-            lattice_constant, bin_width, norm);
+    std::vector<std::vector<double>> lin_lat 
+        = linearize_lattice(lattice_transformed, lattice_size,
+                lattice_constant, bin_width, norm);
     fftw_free(lattice_transformed);
     return lin_lat;
 }
@@ -1661,7 +1660,6 @@ std::vector<double>  mean_structure_factor(const Frame & frame, const double q,
     return result;
 }
 
-
 /**
  * Calculate Minkowski functionals (MFs). In 3 dimensions there are 4:
  * V_0: volume
@@ -1689,14 +1687,56 @@ std::array<double, 6> minkowski_functionals(const T input,
         const size_t lattice_size, const double threshold = -1., 
         const char norm='n', const bool natural_units=false)
 {
-    //std::cout << "Calculating Minkowski " << input << " latsi " << lattice_size 
-        //<< " thr  " << threshold << " norm  " << norm 
-        //<< " natu " << natural_units << '\n';
-
     if(typeid(T) != typeid(Frame) && typeid(T) != typeid(const char *))
         throw std::runtime_error("Incompatible input type.\n");
 
-    std::array<double, 6> result{0., 0., 0., 0., 0., 0.};
+    /* read lattice with function that is suitable for type of input */
+    const size_t number_of_sites = pow(lattice_size, 3);
+    double* lattice = (double*) calloc(number_of_sites, sizeof(double));
+    const double mean_density = read_lattice(input, lattice, lattice_size)
+        / number_of_sites;
+    if (mean_density < 10e-14) return {0., 0., 0., 0., 0., 0.};
+
+    std::array<double, 6> mfs = minkowski_functionals(lattice, lattice_size,
+            threshold, norm, natural_units);
+    free(lattice); // TODO leak???
+    return mfs;
+}
+
+
+/**
+ * Calculate Minkowski functionals (MFs). In 3 dimensions there are 4:
+ * V_0: volume
+ * V_1: area
+ * V_2: mean curvature
+ * V_3: Euler-Poincare characteristic
+ * The configuration is first mapped onto a black and white lattice. Each
+ * cell-center of the lattice has 8 neighbors. Hence there are 2^8 different
+ * neighborhoods. The MFs are additive and rotationally invariant. By symmetry
+ * the number of neighborhoods that are unique wrt. the MFs reduces to 22.
+ * The MFs are computed in the lattice centers.
+ *
+ * See paper Arns, Knackstedt, Pinczewski, Mecke Phys. Rev. E 63 2001
+ *
+ * @param[in] input Input lattice configuration either as Frame or
+ * filename const char *
+ * @param[in] lattice_size linear lattice size of the interpolation lattice
+ * @param[in] threshold lattice sites with density >= threshold will be
+ * interpreted as 'black'.
+ * @param[in] natural_units normalize results by appropriate power of
+ * lattice_size in order to make it dimensionless
+ */
+template<>
+std::array<double, 6> minkowski_functionals<double*>
+(double* const lattice, const size_t lattice_size, const double threshold, 
+ const char norm, const bool natural_units)
+{
+    double number_of_sites = pow(lattice_size, 3);
+    double mean_density = 0.;
+    for(size_t i = 0; i < pow(lattice_size, 3); ++i) 
+        mean_density += lattice[i];
+    mean_density /= number_of_sites;
+    if (mean_density < 10e-14) return {0., 0., 0., 0., 0., 0.};
 
     // values of the MFs for the 22 possible configurations
     static const std::array<std::array<double, 6>, 22> results{{
@@ -1727,272 +1767,266 @@ std::array<double, 6> minkowski_functionals(const T input,
     // associate the 256 possible neighborhoods to the 22 configurations
     static const std::array<const std::array<double, 6> *, 256> pointers{
         &results[0],
-            &results[1],
-            &results[1],
-            &results[2],
-            &results[1],
-            &results[2],
-            &results[3],
-            &results[5],
-            &results[1],
-            &results[3],
-            &results[2],
-            &results[5],
-            &results[2],
-            &results[5],
-            &results[5],
-            &results[8],
-            &results[1],
-            &results[2],
-            &results[3],
-            &results[5],
-            &results[3],
-            &results[5],
-            &results[7],
-            &results[9],
-            &results[4],
-            &results[6],
-            &results[6],
-            &results[10],
-            &results[6],
-            &results[10],
-            &results[11],
-            &results[16],
-            &results[1],
-            &results[3],
-            &results[2],
-            &results[5],
-            &results[4],
-            &results[6],
-            &results[6],
-            &results[10],
-            &results[3],
-            &results[7],
-            &results[5],
-            &results[9],
-            &results[6],
-            &results[11],
-            &results[10],
-            &results[16],
-            &results[2],
-            &results[5],
-            &results[5],
-            &results[8],
-            &results[6],
-            &results[10],
-            &results[11],
-            &results[16],
-            &results[6],
-            &results[11],
-            &results[10],
-            &results[16],
-            &results[12],
-            &results[15],
-            &results[15],
-            &results[19],
-            &results[1],
-            &results[3],
-            &results[4],
-            &results[6],
-            &results[2],
-            &results[5],
-            &results[6],
-            &results[10],
-            &results[3],
-            &results[7],
-            &results[6],
-            &results[11],
-            &results[5],
-            &results[9],
-            &results[10],
-            &results[16],
-            &results[2],
-            &results[5],
-            &results[6],
-            &results[10],
-            &results[5],
-            &results[8],
-            &results[11],
-            &results[16],
-            &results[6],
-            &results[11],
-            &results[12],
-            &results[15],
-            &results[10],
-            &results[16],
-            &results[15],
-            &results[19],
-            &results[3],
-            &results[7],
-            &results[6],
-            &results[11],
-            &results[6],
-            &results[11],
-            &results[12],
-            &results[15],
-            &results[7],
-            &results[13],
-            &results[11],
-            &results[14],
-            &results[11],
-            &results[14],
-            &results[15],
-            &results[18],
-            &results[5],
-            &results[9],
-            &results[10],
-            &results[16],
-            &results[10],
-            &results[16],
-            &results[15],
-            &results[19],
-            &results[11],
-            &results[14],
-            &results[15],
-            &results[18],
-            &results[15],
-            &results[18],
-            &results[17],
-            &results[20],
-            &results[1],
-            &results[4],
-            &results[3],
-            &results[6],
-            &results[3],
-            &results[6],
-            &results[7],
-            &results[11],
-            &results[2],
-            &results[6],
-            &results[5],
-            &results[10],
-            &results[5],
-            &results[10],
-            &results[9],
-            &results[16],
-            &results[3],
-            &results[6],
-            &results[7],
-            &results[11],
-            &results[7],
-            &results[11],
-            &results[13],
-            &results[14],
-            &results[6],
-            &results[12],
-            &results[11],
-            &results[15],
-            &results[11],
-            &results[15],
-            &results[14],
-            &results[18],
-            &results[2],
-            &results[6],
-            &results[5],
-            &results[10],
-            &results[6],
-            &results[12],
-            &results[11],
-            &results[15],
-            &results[5],
-            &results[11],
-            &results[8],
-            &results[16],
-            &results[10],
-            &results[15],
-            &results[16],
-            &results[19],
-            &results[5],
-            &results[10],
-            &results[9],
-            &results[16],
-            &results[11],
-            &results[15],
-            &results[14],
-            &results[18],
-            &results[10],
-            &results[15],
-            &results[16],
-            &results[19],
-            &results[15],
-            &results[17],
-            &results[18],
-            &results[20],
-            &results[2],
-            &results[6],
-            &results[6],
-            &results[12],
-            &results[5],
-            &results[10],
-            &results[11],
-            &results[15],
-            &results[5],
-            &results[11],
-            &results[10],
-            &results[15],
-            &results[8],
-            &results[16],
-            &results[16],
-            &results[19],
-            &results[5],
-            &results[10],
-            &results[11],
-            &results[15],
-            &results[9],
-            &results[16],
-            &results[14],
-            &results[18],
-            &results[10],
-            &results[15],
-            &results[15],
-            &results[17],
-            &results[16],
-            &results[19],
-            &results[18],
-            &results[20],
-            &results[5],
-            &results[11],
-            &results[10],
-            &results[15],
-            &results[10],
-            &results[15],
-            &results[15],
-            &results[17],
-            &results[9],
-            &results[14],
-            &results[16],
-            &results[18],
-            &results[16],
-            &results[18],
-            &results[19],
-            &results[20],
-            &results[8],
-            &results[16],
-            &results[16],
-            &results[19],
-            &results[16],
-            &results[19],
-            &results[18],
-            &results[20],
-            &results[16],
-            &results[18],
-            &results[19],
-            &results[20],
-            &results[19],
-            &results[20],
-            &results[20],
-            &results[21]
+        &results[1],
+        &results[1],
+        &results[2],
+        &results[1],
+        &results[2],
+        &results[3],
+        &results[5],
+        &results[1],
+        &results[3],
+        &results[2],
+        &results[5],
+        &results[2],
+        &results[5],
+        &results[5],
+        &results[8],
+        &results[1],
+        &results[2],
+        &results[3],
+        &results[5],
+        &results[3],
+        &results[5],
+        &results[7],
+        &results[9],
+        &results[4],
+        &results[6],
+        &results[6],
+        &results[10],
+        &results[6],
+        &results[10],
+        &results[11],
+        &results[16],
+        &results[1],
+        &results[3],
+        &results[2],
+        &results[5],
+        &results[4],
+        &results[6],
+        &results[6],
+        &results[10],
+        &results[3],
+        &results[7],
+        &results[5],
+        &results[9],
+        &results[6],
+        &results[11],
+        &results[10],
+        &results[16],
+        &results[2],
+        &results[5],
+        &results[5],
+        &results[8],
+        &results[6],
+        &results[10],
+        &results[11],
+        &results[16],
+        &results[6],
+        &results[11],
+        &results[10],
+        &results[16],
+        &results[12],
+        &results[15],
+        &results[15],
+        &results[19],
+        &results[1],
+        &results[3],
+        &results[4],
+        &results[6],
+        &results[2],
+        &results[5],
+        &results[6],
+        &results[10],
+        &results[3],
+        &results[7],
+        &results[6],
+        &results[11],
+        &results[5],
+        &results[9],
+        &results[10],
+        &results[16],
+        &results[2],
+        &results[5],
+        &results[6],
+        &results[10],
+        &results[5],
+        &results[8],
+        &results[11],
+        &results[16],
+        &results[6],
+        &results[11],
+        &results[12],
+        &results[15],
+        &results[10],
+        &results[16],
+        &results[15],
+        &results[19],
+        &results[3],
+        &results[7],
+        &results[6],
+        &results[11],
+        &results[6],
+        &results[11],
+        &results[12],
+        &results[15],
+        &results[7],
+        &results[13],
+        &results[11],
+        &results[14],
+        &results[11],
+        &results[14],
+        &results[15],
+        &results[18],
+        &results[5],
+        &results[9],
+        &results[10],
+        &results[16],
+        &results[10],
+        &results[16],
+        &results[15],
+        &results[19],
+        &results[11],
+        &results[14],
+        &results[15],
+        &results[18],
+        &results[15],
+        &results[18],
+        &results[17],
+        &results[20],
+        &results[1],
+        &results[4],
+        &results[3],
+        &results[6],
+        &results[3],
+        &results[6],
+        &results[7],
+        &results[11],
+        &results[2],
+        &results[6],
+        &results[5],
+        &results[10],
+        &results[5],
+        &results[10],
+        &results[9],
+        &results[16],
+        &results[3],
+        &results[6],
+        &results[7],
+        &results[11],
+        &results[7],
+        &results[11],
+        &results[13],
+        &results[14],
+        &results[6],
+        &results[12],
+        &results[11],
+        &results[15],
+        &results[11],
+        &results[15],
+        &results[14],
+        &results[18],
+        &results[2],
+        &results[6],
+        &results[5],
+        &results[10],
+        &results[6],
+        &results[12],
+        &results[11],
+        &results[15],
+        &results[5],
+        &results[11],
+        &results[8],
+        &results[16],
+        &results[10],
+        &results[15],
+        &results[16],
+        &results[19],
+        &results[5],
+        &results[10],
+        &results[9],
+        &results[16],
+        &results[11],
+        &results[15],
+        &results[14],
+        &results[18],
+        &results[10],
+        &results[15],
+        &results[16],
+        &results[19],
+        &results[15],
+        &results[17],
+        &results[18],
+        &results[20],
+        &results[2],
+        &results[6],
+        &results[6],
+        &results[12],
+        &results[5],
+        &results[10],
+        &results[11],
+        &results[15],
+        &results[5],
+        &results[11],
+        &results[10],
+        &results[15],
+        &results[8],
+        &results[16],
+        &results[16],
+        &results[19],
+        &results[5],
+        &results[10],
+        &results[11],
+        &results[15],
+        &results[9],
+        &results[16],
+        &results[14],
+        &results[18],
+        &results[10],
+        &results[15],
+        &results[15],
+        &results[17],
+        &results[16],
+        &results[19],
+        &results[18],
+        &results[20],
+        &results[5],
+        &results[11],
+        &results[10],
+        &results[15],
+        &results[10],
+        &results[15],
+        &results[15],
+        &results[17],
+        &results[9],
+        &results[14],
+        &results[16],
+        &results[18],
+        &results[16],
+        &results[18],
+        &results[19],
+        &results[20],
+        &results[8],
+        &results[16],
+        &results[16],
+        &results[19],
+        &results[16],
+        &results[19],
+        &results[18],
+        &results[20],
+        &results[16],
+        &results[18],
+        &results[19],
+        &results[20],
+        &results[19],
+        &results[20],
+        &results[20],
+        &results[21]
     };
     assert(pointers.size() == 256);
+    std::array<double, 6> result{0., 0., 0., 0., 0., 0.};
 
-    const size_t number_of_sites = pow(lattice_size, 3);
-    std::unique_ptr<double[]> lattice = std::make_unique<double[]>(number_of_sites);
-    for(size_t i = 0; i < number_of_sites; ++i)  lattice[i] = 0.;
 
-    /* read lattice with function that is suitable for type of input */
-    const double mean_density = read_lattice(input, lattice.get(), lattice_size)
-        / number_of_sites;
-    if (mean_density < 10e-14) return {0., 0., 0., 0., 0., 0.};
 
     double new_threshold{0.};
     if(threshold < 0.) new_threshold = mean_density;
