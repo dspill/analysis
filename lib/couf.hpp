@@ -10,6 +10,7 @@
 #include <cfloat>
 #include <vector>
 #include <sstream>
+#include <array>
 #include <dirent.h>
 #include "Real3D.hpp"
 
@@ -184,17 +185,30 @@ namespace couf
         return;
     }
 
+    template<size_t size>
+        void write_to_file(const std::vector<std::array<double, size> > &table, const char *filename) 
+        {
+            FILE *pFile;
+            pFile = fopen(filename, "w");
+
+            for(auto it = table.cbegin(); 
+                    it != table.cend(); ++it)
+            {
+                for(auto it2 = (*it).cbegin();
+                        it2 != (*it).cend(); ++it2)
+                {
+                    fprintf(pFile, "%16.9e ", *it2);
+                }
+                fprintf(pFile, "\n");
+            }
+            fclose(pFile);
+            return;
+        }
+
+    /* write 2d row-major array to file */
     void write_to_file(const double *array, const int n_row,
             const int n_col, const char *filename) 
     {
-        // write 2d row-major array to file
-        //
-        //if(n_col * n_row != sizeof(array)/sizeof(*array))
-        //{
-        //std::cout << sizeof(array)/sizeof(double) << std::endl;
-        //fprintf(stderr, "ERROR: Array size does not match supplied number of columns/rows!\n");
-        //exit(1);
-        //}
         FILE *pFile;
         pFile = fopen(filename, "w");
 
@@ -211,17 +225,10 @@ namespace couf
         fclose(pFile);
     }
 
+    /* write 2d row-major array to file */
     void write_to_file(const Real3D *array, const int n_row,
             const int n_col, const char *filename) 
     {
-        // write 2d row-major array to file
-        //
-        //if(n_col * n_row != sizeof(array)/sizeof(*array))
-        //{
-        //std::cout << sizeof(array)/sizeof(double) << std::endl;
-        //fprintf(stderr, "ERROR: Array size does not match supplied number of columns/rows!\n");
-        //exit(1);
-        //}
         FILE *pFile;
         pFile = fopen(filename, "w");
 

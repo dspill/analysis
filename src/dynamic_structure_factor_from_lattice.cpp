@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     if(lattice_constant == 0.) lattice_constant = 1.;
 
     /* format output */
-    vector<vector<double>> struc_fac =
+    vector<array<double, 2>> struc_fac =
         structure_factor(infile, lattice_size, lattice_constant, bin_width);
 
     /* file output */

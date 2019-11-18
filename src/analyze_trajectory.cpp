@@ -85,9 +85,9 @@ int main(int argc, char **argv)
         Frame f = *traj;
 
         /* compute structure factor */
-        vector<vector<double>> struc_fac =
+        vector<array<double, 2>> struc_fac =
             structure_factor(f, lattice_size, lattice_constant, bin_width, 
-                    traj->size());
+                    f.size());
 
         sprintf(outfile, "./dsf/dsf_%05zd.dat", traj.index());
         couf::write_to_file(struc_fac, outfile);

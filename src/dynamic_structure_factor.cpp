@@ -24,6 +24,7 @@ int main(int argc, char **argv)
         cout << "  --offset <int>    (opt) number of lines to skip at the beginning" << '\n';
         cout << "  --max    <int>    (opt) highest number of frame to read" << '\n';
         cout << "  --exp    <double>\n";
+        cout << "  --dim    <int>    (3)   spacial dimension\n";
         exit(1);
     }
 
@@ -33,50 +34,52 @@ int main(int argc, char **argv)
     char outfile[256];
 
     // frames to skip at the beginning
-    double bin_width    = atof(couf::parse_arguments(argc, argv, "--bw"));
+    double bin_width    = atof(couf::parse_arguments(argc, argv, "--bw", "0"));
     int cg_factor       = atoi(couf::parse_arguments(argc, argv, "--cg", "1"));
     int fg_factor       = atoi(couf::parse_arguments(argc, argv, "--fg", "1"));
+    size_t dim          = static_cast<size_t>(
+            atoi(couf::parse_arguments(argc, argv, "--dim", "3")));
 
 
     const double lattice_constant = (double) cg_factor / fg_factor;
     /* ----------- input done ---------- */
 
     Trajectory traj{infile};
-    const double q_min = 2.*M_PI / std::min(traj->box()[0], 
-            std::min(traj->box()[1], traj->box()[2]));
+    const double q_min = 2.*M_PI / (lattice_constant*traj->box()[0]);
+    
     if(bin_width == 0.0) bin_width = q_min;
     if(bin_width < q_min)
         throw runtime_error("Bin-size is too small");
 
-    cout << "infile:    " << infile << '\n';
-    cout << "bin_width: " << bin_width << '\n';
-    cout << "cg_factor: " << cg_factor << '\n';
-    cout << "fg_factor: " << fg_factor << '\n';
-
     /* get lattice size */
-    const size_t original_lattice_size = round(traj->box()[0]);
-    const size_t lattice_size = round(original_lattice_size / lattice_constant);
-    cout << "original lattice size = " << original_lattice_size << '\n';
-    cout << "scaled lattice size   = " << lattice_size << '\n';
+    const size_t original_side_length = round(traj->box()[0]);
+    const size_t side_length = round(original_side_length / lattice_constant);
+
+    cout << "infile                = " << infile << '\n';
+    cout << "bin_width             = " << bin_width << '\n';
+    cout << "cg_factor             = " << cg_factor << '\n';
+    cout << "fg_factor             = " << fg_factor << '\n';
+    cout << "original lattice size = " << original_side_length << '\n';
+    cout << "scaled lattice size   = " << side_length << '\n';
     cout << "lattice constant      = " << lattice_constant << '\n';
-    if(lattice_size % cg_factor != 0)
-        throw runtime_error("Lattice_size must be divisible by cg_factor.\n");
+    if(side_length % cg_factor != 0)
+        throw runtime_error("side_length must be divisible by cg_factor.\n");
 
     /* loop through frames */
     while(!traj.is_null())
     {
         cout << "reading frame " << traj.index() << '\n';
         /* compute structure factor */
-        vector<vector<double>> struc_fac =
-            structure_factor(*traj, lattice_size, lattice_constant, bin_width, 
-                    traj->size());
+        vector<array<double, 2>> struc_fac =
+            structure_factor(*traj, side_length, lattice_constant, bin_width, 
+                    traj->size(), dim);
 
         /* file output */
         if(couf::is_given(argc, argv, "--of"))
             strcpy(outfile, couf::parse_arguments(argc, argv, "--of"));
         else
         {
-            sprintf(outfile, "dsf_%05zd.dat", traj.index());
+            sprintf(outfile, "dsf%zdd_%05zd.dat", dim, traj.index());
         }
         couf::write_to_file(struc_fac, outfile);
 

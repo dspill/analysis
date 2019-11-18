@@ -148,14 +148,15 @@ class Trajectory
         {
             size_t offset = static_cast<size_t>(
                     atoi(couf::parse_arguments(argc, argv, "--offset")));
-            size_t max = static_cast<size_t>(
-                    atoi(couf::parse_arguments(argc, argv, "--max")));
+            int max = atoi(couf::parse_arguments(argc, argv, "--max", "-1"));
             size_t step = static_cast<size_t>(
                     atoi(couf::parse_arguments(argc, argv, "--step", "1")));
             double exponent = atof(couf::parse_arguments(argc, argv, "--exp"));
 
             size_t ndx = index();
-            if(max == 0) max = std::numeric_limits<int>::max();
+            size_t m;
+            if(max < 0) m = std::numeric_limits<int>::max();
+            else m = static_cast<size_t>(max);
 
             if(ndx == 0 && offset) 
             {
@@ -171,7 +172,7 @@ class Trajectory
                 else 
                 {
                     ds = ceil(ndx * (pow(2, exponent) - 1));
-                    if(index() + ds > max)
+                    if(index() + ds > m)
                     {
                         _stream.setstate(std::ios_base::eofbit);
                         return;
@@ -183,7 +184,7 @@ class Trajectory
             // advance linearly
             else advance(step);
 
-            if(ndx >= max)
+            if(ndx >= m)
             {
                 _stream.setstate(std::ios_base::eofbit);
                 return;

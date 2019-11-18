@@ -75,44 +75,49 @@ int main(int argc, char **argv)
             cout << "created directory " << dirname << '\n';
     }
 
-    /* loop through frames */
+    /* allocate lattice */
     double lattice_constant;
     size_t lattice_size;
+    size_t number_of_sites;
+    double* lattice;
+
+    /* loop through frames */
     while(!traj.is_null())
     {
         /* read frame */
         cout << "reading frame " << traj.index() << '\n';
-        lattice_constant = (double) cg_factor / fg_factor;
-        lattice_size = round(original_lattice_size / lattice_constant);
         Frame f = *traj;
 
-        /* allocate lattice */
-        const size_t number_of_sites = pow(lattice_size, 3);
-        double* lattice = 
-            (double*) fftw_alloc_real(number_of_sites * sizeof(double));
+        /* read lattice */
+        lattice_constant = (double) cg_factor / fg_factor;
+        lattice_size = round(original_lattice_size / lattice_constant);
+        number_of_sites = pow(lattice_size, 3);
+        lattice = (double*) fftw_alloc_real(number_of_sites * sizeof(double));
         std::fill(lattice, lattice + number_of_sites, 0.);
-        read_lattice(f, lattice, lattice_size);
-        /* delete contents of f */
-        f.clear();
-
+        read_lattice(f, lattice, lattice_size, nullptr, 3);
         /* compute structure factor */
-        vector<vector<double>> struc_fac =
-            structure_factor(lattice, lattice_size, lattice_constant, bin_width, 
-                    traj->size());
+        cout << "    computing structure factor\n";
+        vector<array<double, 2>> struc_fac =
+            structure_factor(lattice, lattice_size, lattice_constant, 
+                    bin_width, f.size());
 
         sprintf(outfile, "./dsf/dsf_%05zd.dat", traj.index());
         couf::write_to_file(struc_fac, outfile);
 
         /* compute minkowski functionals */
+        cout << "    computing minkowski functionals\n";
         vector<double> thresholds{.6, .7, .8, .9, 1., 1.1, 1.2, 1.3, 1.4};
         vector<double> cgs {1, 2, 4, 8};
         for(const size_t& cg : cgs)
         {
+            lattice_constant = (double) cg;
+            lattice_size = round(original_lattice_size / lattice_constant);
+            number_of_sites = pow(lattice_size, 3);
+            lattice = (double*) fftw_alloc_real(number_of_sites * sizeof(double));
+            std::fill(lattice, lattice + number_of_sites, 0.);
+            read_lattice(f, lattice, lattice_size, nullptr, 3);
             for(const double& thr : thresholds)
             {
-                lattice_constant = (double) cg;
-                lattice_size = round(original_lattice_size / lattice_constant);
-
                 sprintf(outfile,
                         "./mnk/minkowski_functionals_fg%d_cg%zd_thr%3.2f.dat",
                         1, cg, thr);
@@ -141,10 +146,10 @@ int main(int argc, char **argv)
                 stream.close();
             }
         }
-        fftw_free(lattice);
 
         /* advance to next frame */
         traj.loop_advance(argc, argv);
     }
+    fftw_free(lattice);
     exit(0);
 }

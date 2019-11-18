@@ -11,6 +11,7 @@ set(programs
     check
     correlation_function 
     dynamic_structure_factor 
+    dynamic_structure_factor_2d
     dynamic_structure_factor_from_lattice
     generate_timeseries_ete_over_rg 
     get_frames
@@ -22,6 +23,7 @@ set(programs
     slice_configuration
     traj_info
     ts_correlation_function 
+    concatenate_trajectories
     )
 
 foreach(prog ${programs})
