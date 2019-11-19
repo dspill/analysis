@@ -90,6 +90,7 @@ class Molecule
 
     double bond_length(const int index) const
     {
+        //assert(bond(index).abs() < 2.);
         return bond(index).abs();
     }
 
@@ -98,7 +99,7 @@ class Molecule
         bool c = true;
         for(size_t i = 0; i < size() - 1; ++i)
         {
-            if(bond_length(i) > 2.)
+            if(bond_length(i) > 1.733)
             {
                 std::cerr << "large bond (" << bond_length(i) << ") detected\n";
                 c = false;
@@ -165,7 +166,9 @@ class Molecule
         return r_gyr_sq / size();
     }
 
-    Real3D end_to_end()  {return *(_coordinates_end - 1) - *_coordinates_begin;}
+    Real3D end_to_end(){
+        return *(_coordinates_end - 1) - *_coordinates_begin;
+    }
 
     double end_to_end_squared() {return end_to_end().sqr();}
 

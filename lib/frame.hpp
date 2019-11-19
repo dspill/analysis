@@ -179,12 +179,16 @@ class Frame
         void read_xyz(std::ifstream & stream,
                 const size_t particles_per_molecule = 0)
         {
-            std::string str;
-            std::getline(stream, str);
-            if(stream.eof())
+            if(!stream || stream.peek() == EOF)
             {
+                std::cerr << "Cannot read frame, stream finished\n";
+                std::cerr << stream.eof() << '\n';
+                stream.setstate(std::ios::eofbit);
+                std::cerr << stream.eof() << '\n';
                 return;
             }
+            std::string str;
+            std::getline(stream, str);
 
             // get number of particles
             size_t number_of_particles = std::stoi(str);
@@ -207,7 +211,6 @@ class Frame
             Real3D vec;
             for(size_t i_line = 0; i_line < number_of_particles; ++i_line)
             {
-                // TODO reset instead?
                 std::getline(stream, str);
                 std::stringstream ss(str);
 
@@ -696,6 +699,7 @@ class Frame
             c = (size() % particles_per_molecule() == 0);
             for(size_t i_m = 0; i_m < number_of_molecules(); ++i_m)
             {
+                if(molecule(i_m).size() != particles_per_molecule()) c = false;
                 if(!(molecule(i_m).consistent())) c = false;
             }
 
@@ -792,15 +796,25 @@ class Frame
          * frame.
          * @param[in] earlier_frame reference frame
          */
-        double mean_squared_displacement(Frame earlier_frame)
+        double mean_squared_displacement_cm(Frame earlier_frame)
         {
             double msd = 0.;
             for(size_t imol = 0; imol < number_of_molecules(); ++imol)
             {
-                msd += molecule(imol).
-                    mean_squared_displacement(earlier_frame.molecule(imol));
+                msd += (molecule(imol).center_of_mass() 
+                        - earlier_frame.molecule(imol).center_of_mass()).sqr();
             }
             return msd / number_of_molecules();
+        }
+        double mean_squared_displacement(Frame earlier_frame)
+        {
+            double msd = 0.;
+            for(size_t ipart = 0; ipart < size(); ++ipart)
+            {
+                msd += (coordinate(ipart) -
+                        earlier_frame.coordinate(ipart)).sqr();
+            }
+            return msd / size();
         }
 
         /**
@@ -1008,17 +1022,6 @@ class Frame
             return;
         }
 
-        void write_lattice(const char* filename, const size_t side_length) const
-        {
-            // write lattice configuration to disk
-            double * lattice = new double[side_length*side_length*side_length]{0.};
-            read_lattice(*this, lattice, side_length);
-
-            couf::write_3d_array_to_file(lattice, filename, side_length); 
-
-            delete [] lattice;
-        }
-
         // TODO
         /**
          * Write configuration to binary file
@@ -1110,16 +1113,6 @@ class Frame
                 }
             }
         }
-
-        friend double read_lattice(const Frame & frame, double *lattice, 
-                const size_t side_length, Real3D *velocity_lattice=nullptr,
-                const size_t dim=3);
-        //friend void read_lattice_2d(const Frame & frame, double *lattice, const
-        //size_t side_length);
-        //friend double read_lattice(const char * filename, double *lattice,
-        //const size_t side_length, const size_t dim);
-        //friend double read_lattice_2d(const char * filename, double *lattice,
-        //const size_t side_length);
 };
 
 /**
@@ -1132,8 +1125,8 @@ class Frame
  * @param[out] velocity_lattice array that stores the velocity lattice
  */
 double read_lattice(const Frame & frame, double *lattice, 
-        const size_t side_length, Real3D *velocity_lattice, 
-        const size_t dim)
+        const size_t side_length, Real3D *velocity_lattice=nullptr, 
+        const size_t dim=3)
 {
     const int original_side_length = round(frame.box(0));
     if(original_side_length == 0.) throw
@@ -1269,52 +1262,6 @@ double read_lattice(const Frame & frame, double *lattice,
     return norm;
 }
 
-void read_lattice_2d(const Frame & frame, double *lattice, const size_t
-        side_length)
-{
-
-    const int original_side_length = round(frame.box(0));
-    const double lattice_constant = (double) side_length / original_side_length;
-
-    int i, j, new_i, new_j = 0;
-    double x, y, dx, dy = 0.;
-
-    for(auto ccit = frame.c_cbegin(); ccit != frame.c_cend(); ++ccit)
-    {
-        Real3D coordinate = *ccit;
-        /* coordinates in lattice units */
-        x = coordinate[0] * lattice_constant;
-        y = coordinate[1] * lattice_constant;
-
-        x = couf::fold(x, side_length);
-        y = couf::fold(y, side_length);
-
-        /* indices of the lattice site to the bottom left: */
-        i = (int) x;
-        j = (int) y;
-
-        /* loop over surrounding lattice sites and compute weights
-         * according to distance */
-        for(int di = 0; di < 2; ++di)
-        {
-            dx = fabs(i + di - x);
-
-            for(int dj = 0; dj < 2; ++dj)
-            {
-                dy = fabs(j + dj - y);
-
-                /* at the borders, again periodic boundary conditions have
-                 * to be taken into account */
-                new_i = (i + di) % side_length;
-                new_j = (j + dj) % side_length;
-
-                lattice[new_j + side_length * new_i] += (1 - dx)*(1 - dy);
-            }
-        }
-    }
-    return;
-}
-
 /**
  * Read 3d lattice from file. Lattice must be cubic.
  * @param[in] filename input file name
@@ -1382,127 +1329,19 @@ double read_lattice(const char * filename, double *lattice,
     return norm;
 }
 
-/**
- * Read 2d lattice from file. Lattice must be square.
- * @param[in] filename input file name
- * @param[out] lattice array that stores the lattice
- * @param[in] side_length linear size of the lattice
- */
-double read_lattice_2d(const char * filename, double *lattice, const size_t
-        side_length)
+
+void write_lattice(const Frame & f, const char* filename, 
+        const size_t side_length)
 {
-    /* read lattice from datafile */
-    std::ifstream instream(filename);
-    if (!instream)
-    {
-        throw std::runtime_error("Could not open input file\n");
-    }
+    // write lattice configuration to disk
+    double * lattice = new double[side_length*side_length*side_length]{0.};
+    read_lattice(f, lattice, side_length);
 
-    /* read the lattice from file */
-    int index = 0;
-    double norm = 0.;
-    double val;
-    std::string str;
-    std::string buf;
-    while(getline(instream, str))
-    {
-        std::stringstream ss(str);
-        while(ss >> buf)
-        {
-            val = stof(buf);
-            lattice[index++] = val;
-            norm += val;
-        }
-    }
-    instream.close();
+    couf::write_3d_array_to_file(lattice, filename, side_length); 
 
-    if(norm <= 0.)
-        std::cerr << "WARNING: System seems to be empty or has negative density\n";
-
-    printf("Calculated a total density of %16.9e.\n", norm);
-
-    if(index != pow(side_length, 2) - 1)
-        throw std::runtime_error("Wrong lattice size given\n");
-
-    return norm;
+    delete [] lattice;
 }
 
-    std::vector<std::array<double, 2>> linearize_lattice_2d
-(const fftw_complex *lattice_transformed, const int side_length, 
- const double lattice_constant, const double norm = 1., 
- const double bin_width = 0.01)
-{
-
-    int index, inew, jnew;
-    double k, S, re, im, abs, dist;
-    const double k_0 = 2. * M_PI / (side_length * lattice_constant);
-
-    const double max = 10; // TODO
-    //const double max = k_0 * side_length / sqrt(2.);
-    const int n_bins = ceil(max / bin_width);
-    int bin;
-
-    double *histogram = (double*) calloc(n_bins, sizeof(double));
-    double *abscissa  = (double*) calloc(n_bins, sizeof(double));
-    int *count        = (int*)    calloc(n_bins, sizeof(int));
-
-    /* build the histogram */
-    for(int i = 0; i < side_length; ++i)
-    {
-        for(int j = 0; j < side_length/2 + 1; ++j)
-        {
-            /*  skip trivial mode */
-            if(i == 0 && j == 0) continue;
-
-            index = j + (side_length/2 + 1) * i;
-            re = lattice_transformed[index][0];
-            im = lattice_transformed[index][1];
-            abs = re*re + im*im;
-
-            if(i < side_length / 2) inew = i;
-            else inew = (side_length - 1) - i;
-
-            if(j < side_length / 2) jnew = j;
-            else jnew = (side_length - 1) - j;
-
-            dist = sqrt(inew*inew + jnew*jnew);
-
-            k = k_0 * dist;
-            S = abs / norm;
-
-            if(k < max)
-            {
-                bin = (int) (k / bin_width);
-                histogram[bin] += S;
-                abscissa[bin]  += k;
-                ++count[bin];
-            }
-        }
-    }
-
-    /* build the vector */
-    std::vector<std::array<double, 2>> result;
-    result.reserve(n_bins);
-    for(int i = 0; i < n_bins; ++i)
-    {
-        if(count[i] > 0){
-            // tuple[0] = abscissa[i] / count[i]; // TODO average abscissa
-            result.push_back(std::array<double, 2>{
-                    bin_width * (i + 0.5),
-                    histogram[i] / count[i]});
-        }
-        else
-        {
-            result.push_back(std::array<double, 2>{
-                    bin_width * (i + 0.5),
-                    0. });
-        }
-    }
-    free(histogram);
-    free(count);
-
-    return result;
-}
 
 /**
  * Transform radial symmetric image of a Fourier transform S(\vec{q}) to a
@@ -1514,7 +1353,7 @@ double read_lattice_2d(const char * filename, double *lattice, const size_t
  * @param[in] bin_width bin width
  * @return vector of pairs (q, S(q)).
  */
-std::vector<std::array<double, 2>> linearize_lattice
+    std::vector<std::array<double, 2>> linearize_lattice
 (const fftw_complex * const lattice_transformed, 
  const size_t side_length, const double lattice_constant, 
  const double bin_width = 0.05, const double norm = 1., const size_t dim=3)
@@ -1522,7 +1361,7 @@ std::vector<std::array<double, 2>> linearize_lattice
     int index, inew, jnew, bin;
     double q, S, re, im, abs, dist;
     const double q_0 = 2. * M_PI / (side_length * lattice_constant);
-    const double max = 2 * M_PI / 0.93;
+    constexpr double max = 2 * M_PI / 0.93;
     const int n_bins = ceil(max / bin_width);
     const size_t threshold = (side_length + 1) / 2;
 
@@ -1601,11 +1440,13 @@ std::vector<std::array<double, 2>> linearize_lattice
                     q = q_0 * dist;
                     S = abs / norm;
 
-                    assert(q <= max);
-                    bin = (int) (q / bin_width);
-                    histogram[bin] += S;
-                    abscissa[bin]  += q;
-                    ++count[bin];
+                    if(q < max)
+                    {
+                        bin = (int) (q / bin_width);
+                        histogram[bin] += S;
+                        abscissa[bin]  += q;
+                        ++count[bin];
+                    }
                 }
             }
         }
@@ -1888,7 +1729,7 @@ std::array<double, 6> minkowski_functionals(const T input,
 
     /* read lattice with function that is suitable for type of input */
     const size_t number_of_sites = pow(side_length, 3);
-    double* const lattice = (double* const) calloc(number_of_sites, sizeof(double));
+    double* const lattice = (double*) calloc(number_of_sites, sizeof(double));
     const double mean_density = read_lattice(input, lattice, side_length)
         / number_of_sites;
     if (mean_density < 10e-14) return {0., 0., 0., 0., 0., 0.};

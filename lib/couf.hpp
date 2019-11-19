@@ -1,6 +1,8 @@
 #ifndef _COUF_HPP
 #define _COUF_HPP
 /* Collection of Useful Functions */
+#include <cstdint>
+#include <filesystem>
 #include <cmath>
 #include <numeric>
 #include <algorithm>
@@ -14,11 +16,21 @@
 #include <dirent.h>
 #include "Real3D.hpp"
 
+//namespace fs = std::filesystem;
+
 namespace couf
 {
-    bool is_directory( const char* pzPath )
+    //bool is_directory(const fs::path& p, fs::file_status s=fs::file_status{})
+    //{
+        //if(fs::status_known(s) ? fs::exists(s) : fs::exists(p))
+            //return true;
+
+        //return false;
+    //}
+
+    bool is_directory(const char* pzPath )
     {
-        if ( pzPath == NULL) return false;
+        if (pzPath == NULL) return false;
 
         DIR *pDir;
         bool bExists = false;

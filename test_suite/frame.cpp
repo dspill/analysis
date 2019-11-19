@@ -263,7 +263,7 @@ int main()
             assert(lattice[i] == lattice2[i]); 
 
 
-        frame.write_lattice("/tmp/assert_lattice.dat", size);
+        write_lattice(frame, "/tmp/assert_lattice.dat", size);
         read_lattice("/tmp/assert_lattice.dat", lattice2, size);
 
         for(size_t i = 0; i < n_sites; ++i)

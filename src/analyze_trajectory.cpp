@@ -17,6 +17,7 @@ int main(int argc, char **argv)
         cout << "Usage: " << '\n';
         cout << argv[0] << '\n';
         cout << "  <char*> infile" << '\n';
+        cout << "  --ppm    <int>    (opt) particles_per_molecule" << '\n';
         cout << "  --thr    <double> (opt) threshold" << '\n';
         cout << "  --cg     <int>    (opt) factor by which the lattice is "
             "coarse grained" << '\n';
@@ -41,97 +42,129 @@ int main(int argc, char **argv)
     char outfile[256];
 
     // frames to skip at the beginning
+    const size_t particles_per_molecule = static_cast<size_t>(
+            atoi(couf::parse_arguments(argc, argv, "--ppm", "0")));
     double threshold    = atof(couf::parse_arguments(argc, argv, "--thr", "-1"));
     int cg_factor       = atoi(couf::parse_arguments(argc, argv, "--cg", "1"));
     int fg_factor       = atoi(couf::parse_arguments(argc, argv, "--fg", "1"));
     bool natural_units  = atoi(couf::parse_arguments(argc, argv, "--natural_units", "0"));
     double bin_width    = atof(couf::parse_arguments(argc, argv, "--bw"));
 
-
-    Trajectory traj{infile};
-    const double q_min = 2.*M_PI / std::min(traj->box()[0], 
-            std::min(traj->box()[1], traj->box()[2]));
+    Trajectory traj{infile, particles_per_molecule};
+    double lattice_constant = (double) cg_factor / fg_factor;
+    const double q_min = 2.*M_PI / (lattice_constant * traj->box()[0]);
     if(bin_width == 0.0) bin_width = q_min;
     if(bin_width < q_min)
         throw runtime_error("Bin-size is too small");
+    if(particles_per_molecule <= 0)
+        cout << "\nWARNING: Degree of polymerization not given\n";
+
     /* ----------- input done ---------- */
 
     cout << "infile:    " << infile << '\n';
     cout << "threshold: " << threshold << '\n';
     cout << "cg_factor: " << cg_factor << '\n';
     cout << "fg_factor: " << fg_factor << '\n';
+    cout << "bin_width: " << bin_width << '\n';
 
     /* get lattice size */
-    const size_t original_lattice_size = round(traj->box()[0]);
+    const size_t original_side_length = round(traj->box()[0]);
 
     for(auto dirname : vector<const char*>{"./dsf", "./mnk"})
     {
-        if(mkdir(dirname, 0777) == -1)
-            //throw std::runtime_error(sprintf("could not create directory %s", dirname));
-            throw std::runtime_error(string("could not create directory")
-                    + string(dirname));
+        if(couf::is_directory(dirname)) continue;
         else
-            cout << "created directory " << dirname << '\n';
+        {
+            if(mkdir(dirname, 0777) == -1)
+                throw std::runtime_error(string("could not create directory")
+                        + string(dirname));
+            else
+                cout << "created directory " << dirname << '\n';
+        }
     }
 
+    ofstream obs_file("observables.dat");
+    obs_file << "# <R_e^2> <R_g^2> R_MSD R_MSD,mol\n";
+    obs_file.precision(precision);
+
+    const Frame frame_0 = *traj;
+
     /* loop through frames */
-    double lattice_constant;
-    size_t lattice_size;
+    size_t side_length;
     while(!traj.is_null())
     {
         cout << "reading frame " << traj.index() << '\n';
-        lattice_constant = (double) cg_factor / fg_factor;
-        lattice_size = round(original_lattice_size / lattice_constant);
-        Frame f = *traj;
+        /* compute observables */
+        obs_file << scientific << setw(precision + 8);
+        obs_file << traj->mean(&Molecule::end_to_end_squared) << ' ';
+        obs_file << traj->mean(&Molecule::radius_of_gyration_squared) << ' ';
+        obs_file << traj->mean_squared_displacement(frame_0) << ' ';
+        obs_file << traj->mean_squared_displacement_cm(frame_0) << ' ';
+        obs_file << endl;
+        //traj.loop_advance(argc, argv);
+        //continue; // TODO
+
 
         /* compute structure factor */
-        vector<array<double, 2>> struc_fac =
-            structure_factor(f, lattice_size, lattice_constant, bin_width, 
-                    f.size());
+        {
+            lattice_constant = (double) cg_factor / fg_factor;
+            side_length = round(original_side_length / lattice_constant);
+            vector<array<double, 2>> struc_fac =
+                structure_factor(*traj, side_length, lattice_constant,
+                        bin_width, traj->size());
 
-        sprintf(outfile, "./dsf/dsf_%05zd.dat", traj.index());
-        couf::write_to_file(struc_fac, outfile);
+            sprintf(outfile, "./dsf/dsf_%05zd.dat", traj.index());
+            couf::write_to_file(struc_fac, outfile);
+        }
 
+        /* compute minkowski_functionals */
         vector<double> thresholds{.6, .7, .8, .9, 1., 1.1, 1.2, 1.3, 1.4};
         vector<double> cgs {1, 2, 4, 8};
         for(const size_t& cg : cgs)
         {
+            lattice_constant = (double) cg;
+            side_length = round(original_side_length / lattice_constant);
+            const size_t number_of_sites = pow(side_length, 3);
+            double* const lattice = (double*) calloc(number_of_sites,
+                    sizeof(double));
+            //const double mean_density = read_lattice(input, lattice, side_length) / number_of_sites;
+            read_lattice(*traj, lattice, side_length);
             for(const double& thr : thresholds)
             {
-                lattice_constant = (double) cg;
-                lattice_size = round(original_lattice_size / lattice_constant);
+                double eff_thr = thr / pow(cg, 3);
 
                 sprintf(outfile,
                         "./mnk/minkowski_functionals_fg%d_cg%zd_thr%3.2f.dat",
-                        1, cg, thr);
+                        1, cg, eff_thr);
                 if(traj.index() == 0) 
                 {
                     remove(outfile);
                 }
-                ofstream stream(outfile, ofstream::app);
+                ofstream mnk_file(outfile, ofstream::app);
 
                 /* compute minkowski functionals */
                 array<double, 6> mfs = minkowski_functionals(
-                        f, lattice_size, thr, 'c', natural_units);
+                        lattice, side_length, eff_thr, 'c', natural_units);
 
                 /* file output */
-                stream << fixed;
-                stream << scientific << setw(6);
-                stream << traj.index();
+                mnk_file << fixed;
+                mnk_file << scientific << setw(6);
+                mnk_file << traj.index();
 
-                stream.precision(precision);
+                mnk_file.precision(precision);
                 for(auto mf : mfs)
                 {
-                    stream << scientific << setw(precision + 8) << mf;
+                    mnk_file << scientific << setw(precision + 8) << mf;
                 }
-                //stream << '\n';
-                stream << endl;
-                stream.close();
+                mnk_file << endl;
+                mnk_file.close();
             }
+            free(lattice);
         }
 
         /* advance to next frame */
         traj.loop_advance(argc, argv);
     }
+    obs_file.close();
     exit(0);
 }

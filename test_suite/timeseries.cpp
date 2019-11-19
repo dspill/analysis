@@ -50,6 +50,7 @@ int main()
         couf::my_assert(ts1 == ts2);
     }
 
+
     {
         Trajectory traj("dummy_traj.xyz", 2);
         Timeseries<Real3D> ts1 = 

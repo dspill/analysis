@@ -75,10 +75,9 @@ int main()
     couf::my_assert(*traj == frame1);
 
     traj.reset();
-    while(!traj.is_null())
-    {
-        frame1 = *++traj;
-    }
+    while(!traj.is_null()) frame1 = *++traj;
+    for(Trajectory t("dummy_traj.xyz"); !t.is_null(); ++t) continue;
+    for(Trajectory t("dummy_traj.xyz"); !t.is_null(); t += 7) continue;
 
 
     // analysis part TODO

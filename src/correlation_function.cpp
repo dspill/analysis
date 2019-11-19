@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     for(size_t span = 0; span < vec[0].size(); ++span)
     {
         fprintf(outfile, "%4zd ", span * step);
-        for(Timeseries ts: vec)
+        for(auto ts: vec)
         {
             double norm = ts.autocorrelation_function(0);
             fprintf(outfile, "%16.9e", ts.autocorrelation_function(span)/norm);

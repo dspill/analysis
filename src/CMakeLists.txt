@@ -23,15 +23,9 @@ set(programs
     slice_configuration
     traj_info
     ts_correlation_function 
-    concatenate_trajectories
     )
 
 foreach(prog ${programs})
     add_executable(${prog} ${prog}.cpp)
     target_link_libraries(${prog} fftw3)
 endforeach()
-
-#target_link_libraries(dynamic_structure_factor_from_lattice fftw3)
-#target_link_libraries(dynamic_structure_factor fftw3)
-#target_link_libraries(analyze fftw3)
-#target_link_libraries(analyze_trajectory fftw3)

@@ -20,6 +20,7 @@ class Trajectory
         Frame _frame; //!< current configuration
         double _timestep{0.}; //!< timestep between consecutive frames
         mutable size_t _frames_read{0};
+        std::string _last_string;
 
         /**
          * Advances the trajectory by one frame without reading the new frame 
@@ -27,7 +28,7 @@ class Trajectory
          */
         size_t advance_one()
         {
-            if(!_stream) return 0;
+            if(!_stream || _stream.peek() == EOF) return 0;
             // basic function that advances _stream by one frame
             std::string str;
             std::getline(_stream, str);
@@ -68,14 +69,15 @@ class Trajectory
             advance(offset);
         }
 
-        ~Trajectory(void)
-        {
-            _stream.close();
-        }
-
         // getter
         //bool is_null() const {return _stream.eof();}
-        bool is_null() const {return !_stream.good();}
+        bool is_null() const {
+            return !is_good();
+        }
+
+        bool is_good() const {
+            return _stream.good();
+        }
 
         size_t index() const {return _index;}
 
@@ -112,7 +114,6 @@ class Trajectory
             {
                 advance_one();
                 index++;
-                //std::cout << index << '\n';
             }
             move_to(start_index);
             return index;
@@ -130,16 +131,16 @@ class Trajectory
 
         void advance(const size_t number=1)
         {
-            if(number == 0) return;
+            if(number == 0 || _stream.peek() == EOF) return;
             for(size_t i = 0; i < number - 1; ++i)
             {
                 _index += advance_one();
             }
             _index += 1;
-            std::cout.flush();
             if(!is_null())
             {
                 _frame = Frame(_stream, _particles_per_molecule);
+                assert(_frame.consistent());
                 ++_frames_read;
             }
         }
