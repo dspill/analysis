@@ -830,7 +830,6 @@ class Frame
         void write_xyz(const char* filename, const bool append = false, const
                 size_t precision = 11) const
         {
-            assert(consistent());
             if(is_null())
             {
                 std::cerr << "Writing of file not possible (frame is null)\n";
@@ -1356,18 +1355,28 @@ void write_lattice(const Frame & f, const char* filename,
     std::vector<std::array<double, 2>> linearize_lattice
 (const fftw_complex * const lattice_transformed, 
  const size_t side_length, const double lattice_constant, 
- const double bin_width = 0.05, const double norm = 1., const size_t dim=3)
+ const double bin_width, const double norm=1., const size_t dim=3)
 {
     int index, inew, jnew, bin;
     double q, S, re, im, abs, dist;
-    const double q_0 = 2. * M_PI / (side_length * lattice_constant);
-    constexpr double max = 2 * M_PI / 0.93;
-    const int n_bins = ceil(max / bin_width);
+    const double q_0   = 2. * M_PI / (side_length * lattice_constant);
+    constexpr double q_max = 2 * M_PI / 0.5;
     const size_t threshold = (side_length + 1) / 2;
+    double bw = bin_width;
 
-    double *histogram = (double*) calloc(n_bins, sizeof(double));
-    double *abscissa  = (double*) calloc(n_bins, sizeof(double));
-    int *count        = (int*)    calloc(n_bins, sizeof(int));
+    if(bw == 0.)
+    {
+        bw = q_0;
+        std::cout << "setting bin_width to " << bw << '\n';
+    }
+    else if(bw < q_0)
+        throw std::runtime_error("Bin-size is too small");
+
+    const int n_bins = ceil(q_max / bw);
+    double *histogram = new double[n_bins]();
+    double *abscissa  = new double[n_bins]();
+    int *count        = new int[n_bins]();
+
     if (dim == 2)
     {
         /* build the histogram */
@@ -1392,11 +1401,12 @@ void write_lattice(const Frame & f, const char* filename,
                 dist = sqrt(inew*inew + jnew*jnew);
 
                 q = q_0 * dist;
+
                 S = abs / norm;
 
-                if(q < max)
+                if(q < q_max)
                 {
-                    bin = (int) (q / bin_width);
+                    bin = (int) (q / bw);
                     histogram[bin] += S;
                     abscissa[bin]  += q;
                     ++count[bin];
@@ -1440,9 +1450,9 @@ void write_lattice(const Frame & f, const char* filename,
                     q = q_0 * dist;
                     S = abs / norm;
 
-                    if(q < max)
+                    if(q < q_max)
                     {
-                        bin = (int) (q / bin_width);
+                        bin = (int) (q / bw);
                         histogram[bin] += S;
                         abscissa[bin]  += q;
                         ++count[bin];
@@ -1461,19 +1471,19 @@ void write_lattice(const Frame & f, const char* filename,
         if(count[i] > 0){
             // tuple[0] = abscissa[i] / count[i]; // TODO average abscissa
             result.push_back(std::array<double, 2>{
-                    bin_width * (i + 0.5),
+                    bw * (i + 0.5),
                     histogram[i] / count[i]});
         }
         else
         {
             result.push_back(std::array<double, 2>{
-                    bin_width * (i + 0.5),
+                    bw * (i + 0.5),
                     0. });
         }
     }
-    free(histogram);
-    free(abscissa);
-    free(count);
+    delete[] histogram;
+    delete[] abscissa;
+    delete[] count;
     return result;
 }
 
@@ -1729,14 +1739,16 @@ std::array<double, 6> minkowski_functionals(const T input,
 
     /* read lattice with function that is suitable for type of input */
     const size_t number_of_sites = pow(side_length, 3);
-    double* const lattice = (double*) calloc(number_of_sites, sizeof(double));
+    double* const lattice = new double[number_of_sites]();
+    //memset(lattice, 0., number_of_sites*sizeof(double));
     const double mean_density = read_lattice(input, lattice, side_length)
         / number_of_sites;
     if (mean_density < 10e-14) return {0., 0., 0., 0., 0., 0.};
 
     std::array<double, 6> mfs = minkowski_functionals(lattice, side_length,
             threshold, norm, natural_units);
-    free(lattice); // TODO leak???
+    //free(lattice); // TODO leak???
+    delete[] lattice;
     return mfs;
 }
 
@@ -1772,7 +1784,9 @@ template<>
     double mean_density = 0.;
     for(size_t i = 0; i < pow(side_length, 3); ++i) 
         mean_density += lattice[i];
-    mean_density /= number_of_sites;
+    //std::cout << "mass: " << mean_density << std::endl;
+    mean_density /= number_of_sites; // mean mass per lattice site
+    //std::cout << "mean mass per lattice site: " << mean_density << std::endl;
     if (mean_density < 10e-14) return {0., 0., 0., 0., 0., 0.};
 
     // values of the MFs for the 22 possible configurations
@@ -2063,11 +2077,10 @@ template<>
     assert(pointers.size() == 256);
     std::array<double, 6> result{0., 0., 0., 0., 0., 0.};
 
-
-
     double new_threshold{0.};
     if(threshold < 0.) new_threshold = mean_density;
     else new_threshold = mean_density * threshold;
+    //std::cout << "threshold: " << new_threshold << std::endl;
 
     // loop over lattice centers
     size_t xn, yn, zn, i_neigh, linear_neigh, config, tag, n_black{0};

@@ -140,7 +140,6 @@ class Trajectory
             if(!is_null())
             {
                 _frame = Frame(_stream, _particles_per_molecule);
-                assert(_frame.consistent());
                 ++_frames_read;
             }
         }

@@ -27,7 +27,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {0., 0., 0., 0., 0., 0.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // A
         frame.clear();
@@ -46,7 +46,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {1., 3., 3., 3., 1., 1.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // B
         frame.clear();
@@ -66,7 +66,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {2., 4., 2., 2., 0., 0.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // C
         frame.clear();
@@ -86,7 +86,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {2., 6., 6., 2., 2., -2.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // D
         frame.clear();
@@ -106,7 +106,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {2., 6., 6., 6., 2., -6.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // E
         frame.clear();
@@ -127,7 +127,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {3., 5., 1., 1., -1., -1.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // F
         frame.clear();
@@ -148,7 +148,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {3., 7., 5., 1., 1., -3.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // G
         frame.clear();
@@ -169,7 +169,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {3., 9., 9., -3., 3., -1.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // I
         frame.clear();
@@ -191,7 +191,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {4., 4., 0., 0., 0., 0.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // M
         frame.clear();
@@ -213,7 +213,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {4., 6., 0., 0., -2., -2.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // H
         frame.clear();
@@ -235,7 +235,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {4., 6., 0., 0., -2., -2.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // L
         frame.clear();
@@ -257,7 +257,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {4., 8., 4., -4., 0., 0.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // J
         frame.clear();
@@ -279,7 +279,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {4., 8., 4., -4., 0., 0.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // K
         frame.clear();
@@ -301,7 +301,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {4., 12., 12., -12., 4., 4.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // G'
         frame.clear();
@@ -324,7 +324,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {5., 9., 3., -9., -1., 3.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // F'
         frame.clear();
@@ -347,7 +347,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {5., 7., -1., -5., -3., 1.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // E'
         frame.clear();
@@ -370,7 +370,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {5., 5., -1., -1., -1., -1.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // D'
         frame.clear();
@@ -394,7 +394,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {6., 6., -6., -6., -6., 2.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // C'
         frame.clear();
@@ -418,7 +418,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {6., 6., -2., -6., -2., 2.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // B'
         frame.clear();
@@ -442,7 +442,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {6., 4., -2., -2., 0., 0.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // A'
         frame.clear();
@@ -467,7 +467,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {7., 3., -3., -3., 1., 1.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
 
         // N
         frame.clear();
@@ -493,7 +493,7 @@ int main()
         mfs[5] *= 8;
 
         temp = {8., 0., 0., 0., 0., 0.};
-        couf::my_assert(mfs == temp);
+        assert(mfs == temp);
     }
 
     /* check additivity of Minkowski functionals. Both configurations
@@ -521,7 +521,7 @@ int main()
         frame3.add_particle(Real3D{18.290, 12.594, 12.329});
         frame3.add_particle(Real3D{14.943, 12.539, 11.693});
 
-        couf::my_assert(
+        assert(
                 minkowski_functionals(frame1, 20, 0.5) +
                 minkowski_functionals(frame2, 20, 0.5) ==
                 minkowski_functionals(frame3, 20, 0.5)
@@ -547,12 +547,12 @@ int main()
         frame.set_box(Real3D((double) size));
         frame.make_cube(radius);
         mfs = minkowski_functionals(frame, size, .5, 'c');
-        couf::my_assert(abs(mfs[0] / pow(radius,3) - 1.) < thr);
-        couf::my_assert(abs(mfs[1] / (6*radius*radius) - 1.) < thr);
-        couf::my_assert(abs(mfs[2] / (3.*M_PI*radius) - 1.) < thr);
-        couf::my_assert(abs(mfs[3] / (3.*M_PI*radius) - 1.) < thr);
-        couf::my_assert(abs(mfs[4] - 1.) < thr);
-        couf::my_assert(abs(mfs[5] - 1.) < thr);
+        assert(abs(mfs[0] / pow(radius,3) - 1.) < thr);
+        assert(abs(mfs[1] / (6*radius*radius) - 1.) < thr);
+        assert(abs(mfs[2] / (3.*M_PI*radius) - 1.) < thr);
+        assert(abs(mfs[3] / (3.*M_PI*radius) - 1.) < thr);
+        assert(abs(mfs[4] - 1.) < thr);
+        assert(abs(mfs[5] - 1.) < thr);
 
         // shell output
         if(false)

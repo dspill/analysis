@@ -40,16 +40,10 @@ int main(int argc, char **argv)
     size_t dim          = static_cast<size_t>(
             atoi(couf::parse_arguments(argc, argv, "--dim", "3")));
 
-
     const double lattice_constant = (double) cg_factor / fg_factor;
     /* ----------- input done ---------- */
 
     Trajectory traj{infile};
-    const double q_min = 2.*M_PI / (lattice_constant*traj->box()[0]);
-    
-    if(bin_width == 0.0) bin_width = q_min;
-    if(bin_width < q_min)
-        throw runtime_error("Bin-size is too small");
 
     /* get lattice size */
     const size_t original_side_length = round(traj->box()[0]);

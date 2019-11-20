@@ -47,15 +47,11 @@ int main(int argc, char **argv)
     double threshold    = atof(couf::parse_arguments(argc, argv, "--thr", "-1"));
     int cg_factor       = atoi(couf::parse_arguments(argc, argv, "--cg", "1"));
     int fg_factor       = atoi(couf::parse_arguments(argc, argv, "--fg", "1"));
-    bool natural_units  = atoi(couf::parse_arguments(argc, argv, "--natural_units", "0"));
+    bool natural_units  = atoi(couf::parse_arguments(argc, argv, "--natural_units", "1"));
     double bin_width    = atof(couf::parse_arguments(argc, argv, "--bw"));
 
     Trajectory traj{infile, particles_per_molecule};
     double lattice_constant = (double) cg_factor / fg_factor;
-    const double q_min = 2.*M_PI / (lattice_constant * traj->box()[0]);
-    if(bin_width == 0.0) bin_width = q_min;
-    if(bin_width < q_min)
-        throw runtime_error("Bin-size is too small");
     if(particles_per_molecule <= 0)
         cout << "\nWARNING: Degree of polymerization not given\n";
 
@@ -101,9 +97,6 @@ int main(int argc, char **argv)
         obs_file << traj->mean_squared_displacement(frame_0) << ' ';
         obs_file << traj->mean_squared_displacement_cm(frame_0) << ' ';
         obs_file << endl;
-        //traj.loop_advance(argc, argv);
-        //continue; // TODO
-
 
         /* compute structure factor */
         {
@@ -119,19 +112,20 @@ int main(int argc, char **argv)
 
         /* compute minkowski_functionals */
         vector<double> thresholds{.6, .7, .8, .9, 1., 1.1, 1.2, 1.3, 1.4};
+        //vector<double> thresholds{1.};
         vector<double> cgs {1, 2, 4, 8};
         for(const size_t& cg : cgs)
         {
+            //continue; // TODO
+            cout << "cg = " << cg << endl;
             lattice_constant = (double) cg;
             side_length = round(original_side_length / lattice_constant);
             const size_t number_of_sites = pow(side_length, 3);
-            double* const lattice = (double*) calloc(number_of_sites,
-                    sizeof(double));
-            //const double mean_density = read_lattice(input, lattice, side_length) / number_of_sites;
+            double* const lattice = new double[number_of_sites]();
             read_lattice(*traj, lattice, side_length);
             for(const double& thr : thresholds)
             {
-                double eff_thr = thr / pow(cg, 3);
+                double eff_thr = thr;
 
                 sprintf(outfile,
                         "./mnk/minkowski_functionals_fg%d_cg%zd_thr%3.2f.dat",
@@ -159,7 +153,7 @@ int main(int argc, char **argv)
                 mnk_file << endl;
                 mnk_file.close();
             }
-            free(lattice);
+            delete[] lattice;
         }
 
         /* advance to next frame */

@@ -25,7 +25,8 @@ int main(int argc, char **argv)
     size_t max         {static_cast<size_t>(atoi(couf::parse_arguments(argc, argv, "--max")))};
     const int offset   {atoi(couf::parse_arguments(argc, argv, "--offset", "0"))};
 
-    if(particles_per_molecule == 0) throw runtime_error("You have to give the chain length.");
+    if(particles_per_molecule == 0) 
+        throw runtime_error("You have to give the chain length.");
     if(offset) cout << "Skipping " << offset << " frames." << '\n';
     if(!couf::is_given(argc, argv, "--max"))
         max = std::numeric_limits<int>::max();
