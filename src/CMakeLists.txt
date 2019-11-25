@@ -23,6 +23,7 @@ set(programs
     slice_configuration
     traj_info
     ts_correlation_function 
+    concatenate_trajectories 
     )
 
 foreach(prog ${programs})

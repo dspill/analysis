@@ -39,7 +39,7 @@ int main(int argc, char **argv)
         }
     }
     else size = traj.size();
-    printf("\nn_frames    = %zd\n", size);
+    printf("n_frames    = %zd\n", size);
 
     exit(0);
 }

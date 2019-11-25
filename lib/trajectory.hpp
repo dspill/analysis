@@ -28,8 +28,7 @@ class Trajectory
          */
         size_t advance_one()
         {
-            if(!_stream || _stream.peek() == EOF) return 0;
-            // basic function that advances _stream by one frame
+            if(!clear_ahead()) return 0;
             std::string str;
             std::getline(_stream, str);
 
@@ -44,13 +43,10 @@ class Trajectory
 
             // get number of particles
             size_t number_of_particles = std::stoi(str);
-
             // iterate box and coordinates
             for(size_t i_line = 0; i_line < 1 + number_of_particles; ++i_line)
-            {
                 _stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                //_stream.ignore(8*1024, '\n');
-            }
+
             return 1;
         }
 
@@ -70,13 +66,16 @@ class Trajectory
         }
 
         // getter
-        //bool is_null() const {return _stream.eof();}
         bool is_null() const {
             return !is_good();
         }
 
         bool is_good() const {
             return _stream.good();
+        }
+
+        bool clear_ahead() {
+            return is_good() && _stream.peek() != EOF;
         }
 
         size_t index() const {return _index;}
@@ -109,14 +108,13 @@ class Trajectory
         size_t size()
         {
             const size_t start_index = index();
-            size_t index = start_index;
-            while(!is_null())
+            while(clear_ahead())
             {
-                advance_one();
-                index++;
+                _index += advance_one();
             }
+            size_t length = _index + 1;
             move_to(start_index);
-            return index;
+            return length;
         }
 
         // manipulation
@@ -129,19 +127,48 @@ class Trajectory
             _frames_read = 1;
         }
 
+        std::streampos tellg() 
+        {
+            return _stream.tellg();
+        }
+
         void advance(const size_t number=1)
         {
-            if(number == 0 || _stream.peek() == EOF) return;
+            if(!clear_ahead() || number == 0) return;
+
+            std::streampos pos;
+
+            // do first number - 1 steps
             for(size_t i = 0; i < number - 1; ++i)
             {
+                if(!clear_ahead())
+                {
+                    /* if we overshot, go back to last valid position, read
+                     * last frame and return */
+                    move_to(pos);
+                    return;
+                }
+
+                pos = tellg(); // save last valid position
                 _index += advance_one();
             }
-            _index += 1;
-            if(!is_null())
+
+            // do last step and read frame
+            _frame = Frame(_stream, _particles_per_molecule);
+            ++_frames_read;
+            ++_index;
+        }
+
+        void go_to_last_frame()
+        {
+            if(!clear_ahead()) return;
+            std::streampos pos;
+            while(clear_ahead())
             {
-                _frame = Frame(_stream, _particles_per_molecule);
-                ++_frames_read;
+                pos = _stream.tellg();
+                _index += advance_one();
             }
+            move_to(pos);
         }
 
         void loop_advance(int argc, char **argv)
@@ -195,18 +222,27 @@ class Trajectory
 
         void move_to(const size_t number)
         {
+            _stream.clear();                 // clear fail and eof bits
             if(number >= index())
             {
                 advance(number - index());
             }
             else
             {
-                _stream.clear();                 // clear fail and eof bits
                 _stream.seekg(0, std::ios::beg); // back to the start!
                 _index = 0;
                 advance(number + 1);
                 _index -= 1;
             }
+        }
+
+        void move_to(const std::streampos pos)
+        {
+            _stream.clear();
+            _stream.seekg(pos);
+            _frame = Frame(_stream, _particles_per_molecule);
+            _stream.setstate(std::ios_base::eofbit);
+            ++_frames_read;
         }
 
         // operators
@@ -260,7 +296,7 @@ class Trajectory
             double mean(T (Molecule::*f)(void), size_t step = 1)
             {
                 double m = 0.;
-                while(!is_null())
+                while(clear_ahead())
                 {
                     m += frame().mean(f);
                     advance(step);
@@ -273,7 +309,7 @@ class Trajectory
                     size_t max = std::numeric_limits<int>::max())
             {
                 std::vector<T> data;
-                while(!is_null() && index() <= max)
+                while(clear_ahead() && index() <= max)
                 {
                     data.emplace_back( (frame().*f)() );
                     advance(step);
@@ -295,7 +331,7 @@ class Trajectory
                     size_t max = std::numeric_limits<int>::max())
             {
                 std::vector<std::vector<T>> data;
-                while(!is_null() && index() <= max)
+                while(clear_ahead() && index() <= max)
                 {
                     data.emplace_back( frame().vector(f) );
                     advance(step);
@@ -318,7 +354,7 @@ class Trajectory
                     size_t max = std::numeric_limits<int>::max())
             {
                 std::vector<Timeseries<std::vector<Real3D>>> data(vofp.size());
-                while(!is_null() && index() <= max)
+                while(clear_ahead() && index() <= max)
                 {
                     Frame f = frame();
                     std::vector<std::vector<Real3D>> vec(vofp.size());
@@ -355,7 +391,7 @@ class Trajectory
                     size_t max = std::numeric_limits<int>::max())
             {
                 std::vector<T> data;
-                while(!is_null() && index() <= max)
+                while(clear_ahead() && index() <= max)
                 {
                     data.emplace_back( frame().mean(f) );
                     advance(step);
@@ -372,7 +408,7 @@ class Trajectory
                 // make timeseries where each timestep contains a observable f
                 // for molecule i_mol
                 std::vector<T> data;
-                while(!is_null() && index() <= max)
+                while(clear_ahead() && index() <= max)
                 {
                     data.emplace_back( (frame().molecule(i_mol).*f)() );
                     advance(step);
@@ -381,13 +417,16 @@ class Trajectory
                 return Timeseries<T>(data);
             }
 
-        void write_xyz(const char* filename)
+        void write_xyz(const char* filename, const bool append=true,\
+                const size_t precision=11)
         {
-            while(!is_null())
+            if(!append) remove(filename);
+            while(clear_ahead())
             {
-                frame().write_xyz(filename, true);
+                frame().write_xyz(filename, true, precision);
                 advance();
             }
+            frame().write_xyz(filename, true, precision);
             return;
         }
 };
