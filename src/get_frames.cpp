@@ -18,9 +18,10 @@ int main(int argc, char **argv)
         cout << "  --max       <int>    (opt) maximum frame to read\n";
         cout << "  --append    flag     (opt) output to ONE file\n";
         cout << "  --vtk       flag     (opt) output as vtk\n";
-        cout << "  --pdb       flag     (opt) output as vtk\n";
+        cout << "  --pdb       flag     (opt) output as pdb\n";
         cout << "  --ppm       <int>    particles_per_molecule (needed for vtk)\n";
         cout << "  --set_types <int>    deduct particle types from indices\n";
+        cout << "  --multiply  <int>    make new system 2x2x2 times the size\n";
         cout << "  --slice     <double>\n";
         cout << "  --exp       <double>\n";
         exit(1);
@@ -33,31 +34,28 @@ int main(int argc, char **argv)
     const bool write_vtk = atoi(couf::parse_arguments(argc, argv, "--vtk"));
     const bool write_pdb = atoi(couf::parse_arguments(argc, argv, "--pdb"));
     const int  set_types = atoi(couf::parse_arguments(argc, argv, "--set_types"));
-    const double  slice  = atoi(couf::parse_arguments(argc, argv, "--slice", "1.5"));
+    const int  multiply  = atoi(couf::parse_arguments(argc, argv, "--multiply"));
+    const double  slice  = atoi(couf::parse_arguments(argc, argv, "--slice", "0"));
     size_t particles_per_molecule {static_cast<size_t>(
             atoi(couf::parse_arguments(argc, argv, "--ppm")))};
 
-    if(write_vtk || write_pdb || set_types)
-    {
+    if(write_vtk || write_pdb || set_types || multiply)
         if(particles_per_molecule == 0)
-        {
             throw runtime_error("You have to give the number of particles per "
                     "molecule.");
-        }
-    }
 
     char outfile[256];
 
     /* loop through frames */
     Trajectory traj{infile, particles_per_molecule};
     Frame frame;
-    while(!traj.is_null())
-    {
-        printf("\rReading frame %zd ", traj.index());
-        cout.flush();
+    do {
+        //printf("\rReading frame %zd ", traj.index());
+        //cout.flush();
 
         /* file output */
         frame = *traj;
+        if(multiply) frame = frame.multiply();
         if(set_types) frame.set_types(set_types);
         if(slice) frame = frame.slice_square(slice);
         if(write_vtk)
@@ -82,7 +80,7 @@ int main(int argc, char **argv)
 
         /* advance to next frame */
         traj.loop_advance(argc, argv);
-    }
+    } while(!traj.is_null());
 
     exit(0);
 }

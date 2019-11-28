@@ -101,7 +101,7 @@ class Molecule
         {
             if(bond_length(i) > 1.733)
             {
-                std::cerr << "large bond (" << bond_length(i) << ") detected\n";
+                //std::cerr << "large bond (" << bond_length(i) << ") detected\n";
                 c = false;
             }
         }

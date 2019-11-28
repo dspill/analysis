@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     }
 
     ofstream obs_file("observables.dat");
-    obs_file << "# <R_e^2> <R_g^2> R_MSD R_MSD,mol\n";
+    obs_file << "# traj.index() <R_e^2> <R_g^2> R_MSD(t,0) <bondlen>\n";
     obs_file.precision(precision);
 
     const Frame frame_0 = *traj;
@@ -89,17 +89,23 @@ int main(int argc, char **argv)
     size_t side_length;
     while(!traj.is_null())
     {
-        cout << "reading frame " << traj.index() << '\n';
+        //cout << "reading frame " << traj.index() << ' ';
+        //cout << "reading frame " << traj.index() << '\n';
         /* compute observables */
-        obs_file << scientific << setw(precision + 8);
-        obs_file << traj->mean(&Molecule::end_to_end_squared) << ' ';
-        obs_file << traj->mean(&Molecule::radius_of_gyration_squared) << ' ';
-        obs_file << traj->mean_squared_displacement(frame_0) << ' ';
-        obs_file << traj->mean_squared_displacement_cm(frame_0) << ' ';
-        obs_file << endl;
+        cout << scientific << setw(precision + 8);
+        cout << traj.index() << ' ';
+        cout << traj->mean(&Molecule::end_to_end_squared) << ' ';
+        cout << traj->mean(&Molecule::radius_of_gyration_squared) << ' ';
+        cout << traj->mean_squared_displacement(frame_0) << ' ';
+        cout << traj->mean(&Molecule::mean_bond_length) << ' ';
+        cout << endl;
+
+        traj.loop_advance(argc, argv); // TODO
+        continue; // TODO
 
         /* compute structure factor */
         {
+            cout << "dsf ";
             lattice_constant = (double) cg_factor / fg_factor;
             side_length = round(original_side_length / lattice_constant);
             vector<array<double, 2>> struc_fac =
@@ -114,10 +120,11 @@ int main(int argc, char **argv)
         vector<double> thresholds{.6, .7, .8, .9, 1., 1.1, 1.2, 1.3, 1.4};
         //vector<double> thresholds{1.};
         vector<double> cgs {1, 2, 4, 8};
+        cout << "mnk ";
         for(const size_t& cg : cgs)
         {
             //continue; // TODO
-            cout << "cg = " << cg << endl;
+            cout << cg << ' ';
             lattice_constant = (double) cg;
             side_length = round(original_side_length / lattice_constant);
             const size_t number_of_sites = pow(side_length, 3);
@@ -155,6 +162,7 @@ int main(int argc, char **argv)
             }
             delete[] lattice;
         }
+        cout << '\n';
 
         /* advance to next frame */
         traj.loop_advance(argc, argv);

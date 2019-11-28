@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     if(v) 
     {
         /* loop through frames */
-        while(!traj.is_null())
+        while(traj.is_good())
         {
             cout << traj;
             if(n_molecules) 

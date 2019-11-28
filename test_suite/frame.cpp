@@ -206,12 +206,16 @@ int main()
         frame0.add_particle(Real3D(2., 3., 4.));
         frame0.add_particle(Real3D(3., 4., 5.));
         frame0.add_particle(Real3D(4., 5., 6.));
+        frame0.set_particles_per_molecule(2);
+        assert(frame0.consistent());
 
         frame1 = frame0.multiply();
 
+        assert(frame1.consistent());
         assert(frame1.particles_per_molecule() == frame0.particles_per_molecule());
         assert(frame1.number_of_molecules() == 8*frame0.number_of_molecules());
         assert(frame1.size() == 8*frame0.size());
+
     }
 
 

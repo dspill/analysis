@@ -408,15 +408,8 @@ class Frame
             for(size_t i = 0; i < m.size(); ++i)
             {
                 Real3D coord = m.coordinate(i) + displacement;
-                if(has_velocities)
-                {
-                    Real3D veloc = m.velocity(i);
-                    add_particle(coord, veloc);
-                }
-                else
-                {
-                    add_particle(coord);
-                }
+                if(has_velocities) add_particle(coord, m.velocity(i));
+                else add_particle(coord);
             }
         }
 
@@ -684,7 +677,8 @@ class Frame
                         for(size_t im = 0; im < number_of_molecules(); ++im)
                         {
                             Molecule m = molecule(im);
-                            Real3D displacement = Real3D(dx*b[0],dy*b[1],dz*b[2]);
+                            Real3D displacement 
+                                = Real3D(dx*b[0], dy*b[1], dz*b[2]);
                             new_frame.add_molecule(m, displacement);
                         }
                     }
@@ -794,6 +788,7 @@ class Frame
         /**
          * Calculate atomar mean-squared-displacement with respect to reference
          * frame.
+         * TODO redundand
          * @param[in] earlier_frame reference frame
          */
         double mean_squared_displacement_cm(Frame earlier_frame)
@@ -1208,6 +1203,7 @@ double read_lattice(const Frame & frame, double *lattice,
             y = coordinate[1] * lattice_constant;
             z = coordinate[2] * lattice_constant;
 
+            // fold coordinates
             x = couf::fold(x, side_length);
             y = couf::fold(y, side_length);
             z = couf::fold(z, side_length);
@@ -1231,8 +1227,8 @@ double read_lattice(const Frame & frame, double *lattice,
                     {
                         dz = fabs(k + dk - z);
 
-                        // at the borders, again periodic boundary conditions have
-                        // to be taken into account
+                        // at the borders, again periodic boundary conditions
+                        // have to be taken into account
                         new_i = (i + di) % side_length;
                         new_j = (j + dj) % side_length;
                         new_k = (k + dk) % side_length;

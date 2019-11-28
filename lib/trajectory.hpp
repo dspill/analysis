@@ -127,6 +127,11 @@ class Trajectory
             _frames_read = 1;
         }
 
+        void set_frame(Frame frame)
+        {
+            _frame = frame;
+        }
+
         std::streampos tellg() 
         {
             return _stream.tellg();
