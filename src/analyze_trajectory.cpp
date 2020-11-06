@@ -89,8 +89,6 @@ int main(int argc, char **argv)
     size_t side_length;
     while(!traj.is_null())
     {
-        //cout << "reading frame " << traj.index() << ' ';
-        //cout << "reading frame " << traj.index() << '\n';
         /* compute observables */
         obs_file << scientific << setw(precision + 8);
         obs_file << traj.index() << ' ';
@@ -100,8 +98,9 @@ int main(int argc, char **argv)
         //obs_file << traj->mean(&Molecule::mean_bond_length) << ' ';
         obs_file << endl;
 
-        //traj.loop_advance(argc, argv); // TODO
-        //continue; // TODO
+        traj.loop_advance(argc, argv); // TODO
+        continue; // TODO
+        // skip the rest
 
         /* compute structure factor */
         {
