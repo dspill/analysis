@@ -1380,9 +1380,6 @@ void write_lattice(const Frame & f, const char* filename,
         {
             for(size_t j = 0; j < side_length/2 + 1; ++j)
             {
-                /*  skip trivial mode */
-                if(i == 0 && j == 0) continue;
-
                 index = j + (side_length/2 + 1) * i;
                 re = lattice_transformed[index][0];
                 im = lattice_transformed[index][1];
@@ -1402,6 +1399,11 @@ void write_lattice(const Frame & f, const char* filename,
 
                 if(q < q_max)
                 {
+                    if(i == 0 && j == 0)
+                    {
+                        std::cout << "S: " << S << ", q: " << q << '\n';
+                        continue;
+                    }
                     bin = (int) (q / bw);
                     histogram[bin] += S;
                     abscissa[bin]  += q;
@@ -1421,8 +1423,6 @@ void write_lattice(const Frame & f, const char* filename,
             {
                 for(size_t k = 0; k < side_length / 2 + 1; ++k)
                 {
-                    /*  skip trivial mode */
-                    if(i == 0 && j == 0 && k == 0) continue;
 
                     index = k + (side_length / 2 + 1)
                         * (j + side_length  * i);
@@ -1449,6 +1449,13 @@ void write_lattice(const Frame & f, const char* filename,
                     if(q < q_max)
                     {
                         bin = (int) (q / bw);
+                        assert(bin >= 0 && bin < n_bins);
+                        /* skip trivial mode */
+                        if(i == 0 && j == 0 && k == 0)
+                        {
+                            std::cout << "S: " << S << ", q: " << q << '\n';
+                            continue;
+                        }
                         histogram[bin] += S;
                         abscissa[bin]  += q;
                         ++count[bin];
@@ -1461,7 +1468,7 @@ void write_lattice(const Frame & f, const char* filename,
 
     /* build the vector */
     std::vector<std::array<double, 2> > result;
-    result.reserve(n_bins); 
+    result.reserve(n_bins + 1); 
     for(int i = 0; i < n_bins; ++i)
     {
         if(count[i] > 0){

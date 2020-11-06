@@ -53,11 +53,15 @@ int main(int argc, char **argv)
         //printf("\rReading frame %zd ", traj.index());
         //cout.flush();
 
-        /* file output */
+        /* manipulation */
         frame = *traj;
         if(multiply) frame = frame.multiply();
         if(set_types) frame.set_types(set_types);
         if(slice) frame = frame.slice_square(slice);
+
+        frame.consistent();
+
+        /* file output */
         if(write_vtk)
         {
             if(append) sprintf(outfile, "traj_filtered.vtk");

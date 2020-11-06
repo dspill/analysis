@@ -92,16 +92,16 @@ int main(int argc, char **argv)
         //cout << "reading frame " << traj.index() << ' ';
         //cout << "reading frame " << traj.index() << '\n';
         /* compute observables */
-        cout << scientific << setw(precision + 8);
-        cout << traj.index() << ' ';
-        cout << traj->mean(&Molecule::end_to_end_squared) << ' ';
-        cout << traj->mean(&Molecule::radius_of_gyration_squared) << ' ';
-        cout << traj->mean_squared_displacement(frame_0) << ' ';
-        cout << traj->mean(&Molecule::mean_bond_length) << ' ';
-        cout << endl;
+        obs_file << scientific << setw(precision + 8);
+        obs_file << traj.index() << ' ';
+        obs_file << traj->mean(&Molecule::end_to_end_squared) << ' ';
+        obs_file << traj->mean(&Molecule::radius_of_gyration_squared) << ' ';
+        obs_file << traj->mean_squared_displacement(frame_0) << ' ';
+        //obs_file << traj->mean(&Molecule::mean_bond_length) << ' ';
+        obs_file << endl;
 
-        traj.loop_advance(argc, argv); // TODO
-        continue; // TODO
+        //traj.loop_advance(argc, argv); // TODO
+        //continue; // TODO
 
         /* compute structure factor */
         {
