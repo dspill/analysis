@@ -97,7 +97,7 @@ int main(int argc, char **argv)
         obs_file << traj->mean(&Molecule::end_to_end_squared) << ' ';
         obs_file << traj->mean(&Molecule::radius_of_gyration_squared) << ' ';
         obs_file << traj->mean_squared_displacement(frame_0) << ' ';
-        //obs_file << traj->mean(&Molecule::mean_bond_length) << ' ';
+        obs_file << traj->mean(&Molecule::mean_bond_length) << ' ';
         obs_file << endl;
 
         traj.loop_advance(argc, argv); // TODO

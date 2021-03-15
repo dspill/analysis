@@ -11,9 +11,15 @@
 /** @file frame.hpp */
 
 /**
- * Class that stores particle coordinates and velocities as well as box size.
- * If _particles_per_molecule == 0 we will consider all particles to be in one
- * molecule (zero molecules if system is empty).
+ * Class that stores particle coordinates and velocities as well as the box
+ * dimensions.
+ * By setting \_particles_per_molecule to a nonzero value N, the system is
+ * considered to consist of linear chain molecules of the given length N.
+ * Note, that the coordinates have to be ordered accordingly, i.e. the first
+ * particle is the first particle in chain one and the last particle is the
+ * last particle in the last chain and so on.
+ * If \_particles_per_molecule_ == 0 all particles are considered to be in one
+ * large molecule (zero molecules if system is empty).
  */
 class Frame
 {
@@ -33,6 +39,13 @@ class Frame
         auto t_end() const {return _types.end();}
 
         /* folding */
+        /**
+         * Folds single coordinate according to the periodic boundary conditions if
+         * it is larger than the box size in the corresponding direction.
+         * @param[in]  coordinate single Cartesian coordinate
+         * @param[in]  box_length box size in Cartesian direction of the coordinate
+         * @param[out] folded coordinate
+         */
         double fold(const double coordinate, const double box_length) const
         {
             if(box_length == 0.) return 0.;
@@ -95,15 +108,37 @@ class Frame
 
     public:
         /* Constructors */
+        /**
+         * Standard constructor initializing empty Frame with zero box size.
+         */
         Frame(){}
 
+        /**
+         * Initialize Frame with given three-dimensional box.
+         * @param[in] box Three-dimensional vector containing box dimensions.
+         */
         Frame(Real3D box) : _box(box) {}
 
+
+        /**
+         * Initialize Frame with given three-dimensional box as well as
+         * coordinates and velocities.
+         * A molecule size can be given as well.
+         * @param[in] box Three-dimensional vector containing box dimensions.
+         * @param[in] vector Particle coordinates.
+         * @param[in] vector Particle velocities.
+         * @param[in] particles_per_molecule Number of particles in one
+         * molecule.
+         */
         Frame(std::vector<Real3D> coordinates, std::vector<Real3D> velocities,
-                Real3D box, size_t particles_per_molecule = 1)
+                Real3D box, size_t particles_per_molecule = 0)
             : _coordinates(coordinates), _velocities(velocities),
             _box(box), _particles_per_molecule(particles_per_molecule) {}
-
+        
+        /**
+         * Initialize Frame with given three-dimensional box.
+         * @param[in] stream open ifstream of .xyz coordinate file
+         */
         Frame(std::ifstream & stream, const size_t particles_per_molecule = 0,
                 const char format = 'x')
         {
@@ -1339,16 +1374,15 @@ void write_lattice(const Frame & f, const char* filename,
 
 
 /**
- * Transform radial symmetric image of a Fourier transform S(\vec{q}) to a
- * vector of pairs (q, S(q)). The wave vector q has a resolution of
- * bin_width.
- * @param[in] lattice_transformed FFTW fourier transformation of a density lattice
+ * Calculate the Structure factor S(q) from the Fourier transform of the
+ * lattice density.
+ * @param[in] lattice_transformed Fourier transformation of a density lattice
  * @param[in] side_length linear size of the lattice
  * @param[in] lattice_constant lattice constant
- * @param[in] bin_width bin width
+ * @param[in] bin_width bin width of the q values
  * @return vector of pairs (q, S(q)).
  */
-    std::vector<std::array<double, 2>> linearize_lattice
+std::vector<std::array<double, 2>> linearize_lattice
 (const fftw_complex * const lattice_transformed, 
  const size_t side_length, const double lattice_constant, 
  const double bin_width, const double norm=1., const size_t dim=3)
@@ -1479,9 +1513,7 @@ void write_lattice(const Frame & f, const char* filename,
         }
         else
         {
-            result.push_back(std::array<double, 2>{
-                    bw * (i + 0.5),
-                    0. });
+            result.push_back(std::array<double, 2>{ bw * (i + 0.5), 0. });
         }
     }
     delete[] histogram;
@@ -1711,11 +1743,13 @@ std::vector<double>  mean_structure_factor(const Frame & frame, const double q,
 }
 
 /**
- * Calculate Minkowski functionals (MFs). In 3 dimensions there are 4:
+ * Calculate Minkowski functionals (MFs)in 3 dimensions:
  * V_0: volume
  * V_1: area
- * V_2: mean curvature
- * V_3: Euler-Poincare characteristic
+ * V_2: mean curvature (4n)
+ * V_3: mean curvature (8n)
+ * V_4: Euler-Poincare characteristic (6n)
+ * V_5: Euler-Poincare characteristic 26n)
  * The configuration is first mapped onto a black and white lattice. Each
  * cell-center of the lattice has 8 neighbors. Hence there are 2^8 different
  * neighborhoods. The MFs are additive and rotationally invariant. By symmetry
@@ -1757,11 +1791,13 @@ std::array<double, 6> minkowski_functionals(const T input,
 
 
 /**
- * Calculate Minkowski functionals (MFs). In 3 dimensions there are 4:
+ * Calculate Minkowski functionals (MFs)in 3 dimensions:
  * V_0: volume
  * V_1: area
- * V_2: mean curvature
- * V_3: Euler-Poincare characteristic
+ * V_2: mean curvature (4n)
+ * V_3: mean curvature (8n)
+ * V_4: Euler-Poincare characteristic (6n)
+ * V_5: Euler-Poincare characteristic 26n)
  * The configuration is first mapped onto a black and white lattice. Each
  * cell-center of the lattice has 8 neighbors. Hence there are 2^8 different
  * neighborhoods. The MFs are additive and rotationally invariant. By symmetry
