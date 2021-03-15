@@ -4,6 +4,7 @@
 #include "fftw3.h"
 #include "limits.h"
 #include <algorithm>    // std::sort
+#include <sys/stat.h>   // mkdir
 
 #define QMAX 10.
 
@@ -21,7 +22,7 @@ int main(int argc, char **argv)
         cout << "  --cg     <int>    (opt) factor by which the lattice is coarse grained" << '\n';
         cout << "  --fg     <int>    (opt) factor by which the lattice is fine grained" << '\n';
         cout << "  --step   <int>    (opt) only evaluate every step-th frame" << '\n';
-        cout << "  --offset <int>    (opt) number of lines to skip at the beginning" << '\n';
+        cout << "  --offset <int>    (opt) number of frames to skip at the beginning" << '\n';
         cout << "  --max    <int>    (opt) highest number of frame to read" << '\n';
         cout << "  --exp    <double>\n";
         cout << "  --dim    <int>    (3)   spacial dimension\n";
@@ -33,7 +34,6 @@ int main(int argc, char **argv)
     // outfile
     char outfile[256];
 
-    // frames to skip at the beginning
     double bin_width    = atof(couf::parse_arguments(argc, argv, "--bw", "0"));
     int cg_factor       = atoi(couf::parse_arguments(argc, argv, "--cg", "1"));
     int fg_factor       = atoi(couf::parse_arguments(argc, argv, "--fg", "1"));
@@ -59,7 +59,19 @@ int main(int argc, char **argv)
     if(side_length % cg_factor != 0)
         throw runtime_error("side_length must be divisible by cg_factor.\n");
 
+    /* create subdirectory */
+    const char* dirname = "./dsf";
+    if(!couf::is_directory(dirname))
+    {
+        if(mkdir(dirname, 0777) == -1)
+            throw std::runtime_error(string("could not create directory")
+                    + string(dirname));
+        else
+            cout << "created directory " << dirname << '\n';
+    }
+
     /* loop through frames */
+    cout << traj;
     while(!traj.is_null())
     {
         cout << "reading frame " << traj.index() << '\n';
@@ -73,7 +85,8 @@ int main(int argc, char **argv)
             strcpy(outfile, couf::parse_arguments(argc, argv, "--of"));
         else
         {
-            sprintf(outfile, "dsf%zdd_%05zd.dat", dim, traj.index());
+            sprintf(outfile, "%s/dsf%zdd_%05zd.dat", dirname,
+                    dim, traj.index());
         }
         couf::write_to_file(struc_fac, outfile);
 
