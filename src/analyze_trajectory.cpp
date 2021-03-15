@@ -68,6 +68,7 @@ int main(int argc, char **argv)
 
     for(auto dirname : vector<const char*>{"./dsf", "./mnk"})
     {
+        continue; // TODO
         if(couf::is_directory(dirname)) continue;
         else
         {
@@ -89,8 +90,9 @@ int main(int argc, char **argv)
     size_t side_length;
     while(!traj.is_null())
     {
+        cout << "reading frame " << traj.index() << '\n';
         /* compute observables */
-        obs_file << scientific << setw(precision + 8);
+        obs_file << scientific << setw(precision + 2);
         obs_file << traj.index() << ' ';
         obs_file << traj->mean(&Molecule::end_to_end_squared) << ' ';
         obs_file << traj->mean(&Molecule::radius_of_gyration_squared) << ' ';
