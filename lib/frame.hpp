@@ -11,8 +11,8 @@
 /** @file frame.hpp */
 
 /**
- * Class that stores particle coordinates and velocities as well as the box
- * dimensions.
+ * The Frame class that stores particle coordinates and velocities as well as
+ * the box dimensions.
  * By setting \_particles_per_molecule to a nonzero value N, the system is
  * considered to consist of linear chain molecules of the given length N.
  * Note, that the coordinates have to be ordered accordingly, i.e. the first
@@ -20,6 +20,7 @@
  * last particle in the last chain and so on.
  * If \_particles_per_molecule_ == 0 all particles are considered to be in one
  * large molecule (zero molecules if system is empty).
+ * Each particle can also be assigned an integer type.
  */
 class Frame
 {
@@ -108,19 +109,19 @@ class Frame
 
     public:
         /* Constructors */
-        /**
+        /*
          * Standard constructor initializing empty Frame with zero box size.
          */
         Frame(){}
 
-        /**
+        /*
          * Initialize Frame with given three-dimensional box.
          * @param[in] box Three-dimensional vector containing box dimensions.
          */
         Frame(Real3D box) : _box(box) {}
 
 
-        /**
+        /*
          * Initialize Frame with given three-dimensional box as well as
          * coordinates and velocities.
          * A molecule size can be given as well.
@@ -135,9 +136,16 @@ class Frame
             : _coordinates(coordinates), _velocities(velocities),
             _box(box), _particles_per_molecule(particles_per_molecule) {}
         
-        /**
+        /*
          * Initialize Frame with given three-dimensional box.
-         * @param[in] stream open ifstream of .xyz coordinate file
+         * Particle coordinates and velocities are read from an ifstream using
+         * designated functions.
+         * A molecule size can be given as well.
+         * @param[in] stream Readable ifstream of the input file.
+         * @param[in] particles_per_molecule Number of particles in one
+         * molecule.
+         * @param[in] format File format. 'x' corresponds to .xyz format.
+         * At the moment only .xyz files are supported.
          */
         Frame(std::ifstream & stream, const size_t particles_per_molecule = 0,
                 const char format = 'x')
@@ -155,6 +163,18 @@ class Frame
             }
         }
 
+        
+        /**
+         * Initialize Frame with given three-dimensional box.
+         * Particle coordinates and velocities are read from an input file
+         * using designated functions.
+         * A molecule size can be given as well.
+         * @param[in] stream Input file.
+         * @param[in] particles_per_molecule Number of particles in one
+         * molecule.
+         * @param[in] format File format. 'x' corresponds to .xyz format.
+         * At the moment only .xyz files are supported.
+         */
         Frame(const char * filename, const size_t particles_per_molecule = 0,
                 const char format = 'x') 
             : _particles_per_molecule(particles_per_molecule)
@@ -175,6 +195,9 @@ class Frame
         }
 
         // operators
+        /**
+         * Give Frame information when the Frame object is passed i.e. to cout.
+         */
         friend std::ostream & operator<<(std::ostream & os, const Frame & frame)
         {
             if(frame.is_null())
@@ -193,7 +216,9 @@ class Frame
         }
 
         /**
-         * This evaluates true if lhs and rhs are the same by value
+         * Compare two frame objects.
+         * Returns true if coordinates, velocities, box dimensions and molecule
+         * sizes are the same by value and false otherwise.
          */
         friend bool operator==(const Frame& lhs, const Frame& rhs)
         {
@@ -204,6 +229,10 @@ class Frame
         }
 
         // member functions
+        /** Read types, coordinates and velocities from and .xyz file.
+         * @param[in] filename Filename of the .xyz file.
+         * @param[in] particles_per_molecule Molecule size.
+         */
         void read_xyz(const std::string & filename,
                 const size_t particles_per_molecule = 0)
         {
@@ -211,6 +240,10 @@ class Frame
             read_xyz(stream, particles_per_molecule);
         }
 
+        /** Read types, coordinates and velocities from and .xyz filestream.
+         * @param[in] stream Ifstream of the open .xyz file.
+         * @param[in] particles_per_molecule Molecule size.
+         */
         void read_xyz(std::ifstream & stream,
                 const size_t particles_per_molecule = 0)
         {
@@ -284,20 +317,29 @@ class Frame
         }
 
         // getter
+        /** @return True if Frame contains velocities. */
         bool has_velocities() const {return _velocities.size() > 0;};
 
+        /** @return True if Frame does not contain any particles. */
         bool is_null() const {return _coordinates.size() == 0;};
 
+        /** @return Number of particles in the Frame. */
         size_t size() const {return _coordinates.size();}
 
+        /** @return Box dimensions. */
         Real3D box() const {return _box;}
 
+        /** 
+         * @param[in] i Box dimension in question.
+         * @return Box size in dimension i. 
+         */
         double box(size_t i) const
         {
             assert(i < 3);
             return _box[i];
         }
 
+        /** @return True if box is cubic. */
         bool is_square() const 
         {
             return box(0) == box(1)
@@ -305,6 +347,7 @@ class Frame
                 && box(2) == box(0);
         }
 
+        /** @return Molecule size. */
         size_t particles_per_molecule() const
         {
             if(_particles_per_molecule == 0)
@@ -313,38 +356,62 @@ class Frame
                 return _particles_per_molecule;
         }
 
+        /** @return Number of molecules in the system. */
         size_t number_of_molecules() const
         {
             if(size() == 0)
                 return 0;
             else
+                assert(size() % particles_per_molecule() == 0);
                 return size() / particles_per_molecule();
         }
 
+        /** @return Const-iterator of coordinate vector start. */
         auto c_cbegin() const {return _coordinates.cbegin();}
+        /** @return Const-iterator of coordinate vector end. */
         auto c_cend() const {return _coordinates.cend();}
+        /** @return Const-iterator of velocity vector start. */
         auto v_cbegin() const {return _velocities.cbegin();}
+        /** @return Const-iterator of velocity vector end. */
         auto v_cend() const {return _velocities.cend();}
+        /** @return Const-iterator of type vector start. */
         auto t_cbegin() const {return _types.cbegin();}
+        /** @return Const-iterator of type vector end. */
         auto t_cend() const {return _types.cend();}
 
+        /** 
+         * @param[in] index Index of the particle in question.
+         * @return Coordinate vector of the particle.
+         */
         Real3D coordinate(const size_t index) const
         {
             assert(index < size());
             return _coordinates[index];
         }
 
+        /** 
+         * @param[in] index Index of the particle in question.
+         * @return Folded coordinate vector of the particle.
+         */
         Real3D folded_coordinate(const size_t index) const
         {
             return fold(coordinate(index));
         }
 
+        /** 
+         * @param[in] index Index of the particle in question.
+         * @return Velocity vector of the particle.
+         */
         Real3D velocity(const size_t index) const
         {
             assert(index < size());
             return _velocities[index];
         }
 
+        /** 
+         * @param[in] index Index of the particle in question.
+         * @return Type of the particle.
+         */
         int type(const size_t index) const
         {
             assert(index < size());
@@ -352,6 +419,10 @@ class Frame
             else return _types[index];
         }
 
+        /** 
+         * @param[in] index Index of the Molecule in question.
+         * @return Molecule object corresponding to given index.
+         */
         Molecule molecule(const size_t index) const
         {
             if(index >= number_of_molecules())
@@ -378,13 +449,25 @@ class Frame
         }
 
         // manipulation
+        /** Set box dimensions.
+         * @param[in] box Vector of box dimensions.
+         */
         void set_box(const Real3D box){_box = box;}
 
+        /** Set molecule size.
+         * @param[in] particles_per_molecule Molecule size.
+         */
         void set_particles_per_molecule(const size_t particles_per_molecule)
         {
             _particles_per_molecule = particles_per_molecule;
         }
 
+        /** Set number of molecules in the system.
+         * The routine checks whether or not the given value is compatible with
+         * the total number of particles.
+         * If this is the case, the molecule size is set accordingly.
+         * @param[in] particles_per_molecule Molecule size.
+         */
         void set_number_of_molecules(const size_t number_of_molecules)
         {
             assert(number_of_molecules >= 1);
@@ -397,6 +480,15 @@ class Frame
             set_particles_per_molecule(size() / number_of_molecules);
         }
 
+        /**
+         * Set particle types according to their index. I.e. particle 0 has
+         * type 0 and so on.
+         * If a certain maximum value is exceeded the enumeration starts again
+         * at 0.
+         * This can be useful for visualization with VMD which only allows for
+         * a finite number of types.
+         * @param[in] max_type All set types are smaller than this value.
+         */
         void set_types(size_t max_type)
         {
             for(size_t i_part = 0; i_part < size(); ++i_part)
@@ -406,6 +498,10 @@ class Frame
             }
         }
 
+        /**
+         * Set particle types according to their index. I.e. particle 0 has
+         * type 0 and so on.
+         */
         void set_types()
         {
             for(size_t i_part = 0; i_part < size(); ++i_part)
@@ -414,6 +510,12 @@ class Frame
             }
         }
 
+        /**
+         * Iterate all particle types.
+         * If a certain maximum value is exceeded the enumeration starts again
+         * at 0.
+         * @param[in] max_type All set types are smaller than this value.
+         */
         void reduce_types(size_t max_type)
         {
             for(int type : _types)
@@ -422,6 +524,11 @@ class Frame
             }
         }
 
+        /**
+         * Add a particle with given type and coordinate vector to the Frame.
+         * @param[in] coordinate Coordinate vector.
+         * @param[in] type Particle type.
+         */
         void add_particle(Real3D coordinate, int type = 0)
         {
             _coordinates.push_back(coordinate);
@@ -429,6 +536,13 @@ class Frame
             if(has_velocities()) _velocities.push_back(Real3D(0.));
         }
 
+        /**
+         * Add a particle with given type, coordinate and velocity vector to
+         * the Frame.
+         * @param[in] coordinate Coordinate vector.
+         * @param[in] velocity Velocity vector.
+         * @param[in] type Particle type.
+         */
         void add_particle(Real3D coordinate, Real3D velocity, int type = 0)
         {
             _coordinates.push_back(coordinate);
@@ -436,6 +550,12 @@ class Frame
             _types.push_back(type);
         }
 
+        /**
+         * Add a Molecule object to the Frame. The coordinates of the particles
+         * in the molecule can optionally be displaced by some vector.
+         * @param[in] m Molecule object.
+         * @param[in] displacement Displacement vector.
+         */
         void add_molecule(const Molecule m, 
                 const Real3D displacement = Real3D(0.))
         {
@@ -448,6 +568,10 @@ class Frame
             }
         }
 
+        /**
+         * Remove particle from the Frame.
+         * @param[in] index Index of the particle that is to be removed.
+         */
         void remove_particle(const size_t index)
         {
             _coordinates.erase(_coordinates.begin() + index);
@@ -455,6 +579,10 @@ class Frame
                 _velocities.erase(_velocities.begin() + index);
         }
 
+        /**
+         * Remove all particles from the system and set box size to zero in all
+         * directions.
+         */
         void clear()
         {
             _box = Real3D(0.);
@@ -464,6 +592,9 @@ class Frame
                 _velocities.clear();
         }
 
+        /** Fold all coordinates in the Frame according to the periodic
+         * boundary conditions.
+         */
         void fold()
         {
             for(std::vector<Real3D>::iterator cit = _coordinates.begin();
@@ -474,6 +605,11 @@ class Frame
             return;
         }
 
+        /** Fold all coordinates in the Frame according to the periodic
+         * boundary conditions while ignoring the z-component.
+         * This is useful for pseudo-2d systems where the z-coordinate
+         * fluctuates around 0.
+         */
         void fold_2d()
         {
             for(std::vector<Real3D>::iterator cit = _coordinates.begin();
@@ -484,6 +620,11 @@ class Frame
             return;
         }
 
+        /** Shift all coordinates by a given vector.
+         * This was originally implemented to test for translational
+         * invariance.
+         * @param[in] shift Shift vector.
+         */
         void shift_coordinates(const Real3D shift)
         {
             for(std::vector<Real3D>::iterator cit = _coordinates.begin();
@@ -494,6 +635,11 @@ class Frame
             return;
         }
 
+        /**
+         * Scale box size and the coordinates of the particles by a given
+         * factor.
+         * @param[in] factor Scaling factor.
+         */
         void scale_box(const double factor)
         {
             for(std::vector<Real3D>::iterator cit = _coordinates.begin();
@@ -505,6 +651,15 @@ class Frame
             return;
         }
 
+        /** Remove all particles that are not within the box defined by the
+         * given limits.
+         * @param[in] xmin Minimum x-coordinate.
+         * @param[in] xmax Maximum x-coordinate.
+         * @param[in] ymin Minimum y-coordinate.
+         * @param[in] ymax Maximum y-coordinate.
+         * @param[in] zmin Minimum z-coordinate.
+         * @param[in] zmax Maximum z-coordinate.
+         */
         void crop_box(const double xmin, const double xmax,
                 const double ymin, const double ymax,
                 const double zmin, const double zmax)
@@ -527,6 +682,12 @@ class Frame
             return;
         }
 
+        /** Remove all particles that are not within the box defined by the
+         * given limits.
+         * @param[in] lx Maximum x-coordinate.
+         * @param[in] ly Maximum y-coordinate.
+         * @param[in] lz Maximum z-coordinate.
+         */
         void crop_box(const double lx, const double ly,
                 const double lz)
         {
@@ -534,6 +695,9 @@ class Frame
             return;
         }
 
+        /** Rotate all coordinates about the x-axis by given angle.
+         * @param[in] angle Rotation angle.
+         */
         void rotate_x(const double angle)
         {
             double c = cos(angle);
@@ -550,6 +714,9 @@ class Frame
             }
         }
 
+        /** Rotate all coordinates about the y-axis by given angle.
+         * @param[in] angle Rotation angle.
+         */
         void rotate_y(const double angle)
         {
             double c = cos(angle);
@@ -566,6 +733,9 @@ class Frame
             }
         }
 
+        /** Rotate all coordinates about the y-axis by given angle.
+         * @param[in] angle Rotation angle.
+         */
         void rotate_z(const double angle)
         {
             double c = cos(angle);
@@ -582,6 +752,10 @@ class Frame
             }
         }
 
+        /** Rotate all coordinates by given angle about a given axis.
+         * @param[in] v Rotation axis.
+         * @param[in] angle Rotation angle.
+         */
         void rotate(const Real3D v, const double angle)
         {
             const double x = v[0];
@@ -603,10 +777,15 @@ class Frame
             }
         }
 
+        /** Divide box into nx x ny x nz equal-sized subboxes.
+         * @param[in] nx Number of subboxes in the x-direction.
+         * @param[in] ny Number of subboxes in the y-direction.
+         * @param[in] nz Number of subboxes in the z-direction.
+         * @return Vector of subboxes.
+         */
         std::vector<Frame> divide_box(const int nx, const int ny = 1,
                 const int nz = 1) const
         {
-            // divide box into nx x ny x nz equal-sized subboxes
             Real3D new_box(box(0)/nx, box(1)/ny, box(2)/nz);
 
             const int nf = nx * ny * nz;
@@ -640,12 +819,12 @@ class Frame
         }
 
         /**
-         * Takes a slice of thickness thickness along the plane given by an 
-         * initial point x0 and a normal vector norm
-         * @param[in] thickness thickness of the slice
-         * @param[in] x0 initial point
-         * @param[in] norm normal vector
-         * @param[out] sliced Frame
+         * Takes a slice of given thickness along the plane given by an 
+         * initial point x0 and a normal vector norm out of the configuration.
+         * @param[in] thickness Thickness of the slice.
+         * @param[in] x0 Initial point.
+         * @param[in] norm Normal vector.
+         * @return Sliced Frame.
          */
         Frame slice(const double thickness, 
                 const Real3D x0 = Real3D(0.), 
@@ -671,15 +850,27 @@ class Frame
         }
 
 
+        /**
+         * Takes a square slice of given thickness around the xy-plane at given
+         * height out of the configuration.
+         * @param[in] thickness Thickness of the slice.
+         * @param[in] height z-coordinate of the xy plane.
+         * @return Sliced Frame.
+         */
         Frame slice_square(const double thickness, const double height = 0.) const
         {
-            // TODO misses some particles?
             return slice(thickness, Real3D(0., 0., height), 
                     Real3D(0., 0., 1.));
         }
 
-
-
+        /**
+         * Takes a rectangular slice of given thickness out of the
+         * configuration by slicing the box diagonally.
+         * This increases the surface of the slice.
+         * @param[in] thickness Thickness of the slice.
+         * @param[in] height z-coordinate of the xy plane.
+         * @return Sliced Frame.
+         */
         Frame slice_rectangle(const double thickness) const
         {
             return slice(thickness, Real3D(0., 0., 0.), 
@@ -688,12 +879,12 @@ class Frame
 
 
         /**
-         * This returns a frame that is extended by periodic images of the
+         * This produces a frame that is extended by periodic images of the
          * original frame.
-         * @param[in] mx how often to copy in x-direction
-         * @param[in] my how often to copy in y-direction
-         * @param[in] mz how often to copy in z-direction
-         * @return multiplied frame
+         * @param[in] mx How many copies are in the x-direction.
+         * @param[in] my How many copies are in the y-direction.
+         * @param[in] mz How many copies are in the z-direction.
+         * @return Multiplied frame.
          */
         Frame multiply(const size_t mx=2, const size_t my=2,
                 const size_t mz=2) const
@@ -722,6 +913,11 @@ class Frame
             return new_frame;
         }
 
+        /** Test Frame for consistency by checking whether the number of
+         * particles is compatible with the total number of particles in the
+         * system.
+         * @return true if consistent, false otherwise.
+         */
         bool consistent() const
         {
             bool c = true;
@@ -737,6 +933,7 @@ class Frame
         }
 
         /* analysis */
+         /** @return Average distance between particles. */
         double mean_distance() const
         {
             Real3D d;
@@ -753,6 +950,7 @@ class Frame
             return dist;
         }
 
+         /** @return Smallest distance between particles. */
         double smallest_distance() const
         {
             double smallest = box(0);
@@ -792,6 +990,7 @@ class Frame
          * Returns the value of function f for each molecule in the system in
          * form of a vector.
          * @param[in] f function that is to be applied to the molecules.
+         * @return vector of function values.
          */
         template <typename T>
             std::vector<T> vector(T (Molecule::*f)(void)) const
@@ -806,9 +1005,7 @@ class Frame
                 return vec;
             }
 
-        /**
-         * Return the size of the largest bond in the system.
-         */
+        /** @return Size of the largest bond in the system.  */
         double max_bond_length() const
         {
             double largest = 0.;
@@ -820,12 +1017,7 @@ class Frame
             return largest;
         }
 
-        /**
-         * Calculate atomar mean-squared-displacement with respect to reference
-         * frame.
-         * TODO redundand
-         * @param[in] earlier_frame reference frame
-         */
+        // TODO redundant
         double mean_squared_displacement_cm(Frame earlier_frame)
         {
             double msd = 0.;
@@ -836,6 +1028,13 @@ class Frame
             }
             return msd / number_of_molecules();
         }
+
+        /**
+         * Calculate the bead mean-squared displacement with respect to
+         * reference frame.
+         * @param[in] Earlier_frame Reference frame.
+         * @return Mean-squared displacement.
+         */
         double mean_squared_displacement(Frame earlier_frame)
         {
             double msd = 0.;
@@ -849,13 +1048,9 @@ class Frame
 
         /**
          * Write configuration to .xyz file.
-         * @param[in] filename filename
-         * @param[in] append whether or not to append to existing files
-         * @param[in] Indicate if set to 0, every particle gets identity zero
-         * in the first column of the file. For nonzero values, the molecule
-         * index modulo the value of indicate is used as identity. This is
-         * because VMD only supports a very limited range of integers as
-         * identity.
+         * @param[in] filename Output filename.
+         * @param[in] append Whether or not to append to existing files.
+         * @param[in] precision Floating point precision of the output.
          */
         void write_xyz(const char* filename, const bool append = false, const
                 size_t precision = 11) const
@@ -916,6 +1111,12 @@ class Frame
             return;
         }
 
+        /**
+         * Write configuration to .vtk file.
+         * @param[in] filename Output filename.
+         * @param[in] append Whether or not to append to existing files.
+         * @param[in] precision Floating point precision of the output.
+         */
         void write_vtk(const char* filename, const bool append = false, const
                 size_t precision = 11) const
         {
@@ -964,6 +1165,12 @@ class Frame
             return;
         }
 
+        /**
+         * Write configuration to .pdb file.
+         * @param[in] filename Output filename.
+         * @param[in] append Whether or not to append to existing files.
+         * @param[in] precision Floating point precision of the output.
+         */
         void write_pdb(const char* filename, const bool append = false) const
         {
 
@@ -1053,7 +1260,10 @@ class Frame
 
         // TODO
         /**
-         * Write configuration to binary file
+         * Write configuration to binary file.
+         * @param[in] filename Output filename.
+         * @param[in] append Whether or not to append to existing files.
+         * @param[in] precision Floating point precision of the output.
          */
         void write_binary(const char* filename, const bool append = false) const
         {
@@ -1096,6 +1306,10 @@ class Frame
             return;
         }
 
+        /** Make a sphere of particles with given radius on a cubic lattice
+         * with lattice constant 1.
+         * @param[in] radius Radius of the sphere.
+         */
         void make_sphere(const double radius)
         {
             if(2*radius > box(0) || 2*radius > box(1) || 2*radius > box(2))
@@ -1122,6 +1336,10 @@ class Frame
             }
         }
 
+        /** Make a cube of particles with edge length on a cubic lattice
+         * with lattice constant 1.
+         * @param[in] L Edge length.
+         */
         void make_cube(const double L)
         {
             if(2*L > box(0) || 2*L > box(1) || 2*L > box(2))
@@ -1145,13 +1363,17 @@ class Frame
 };
 
 /**
- * Projects the 3d configuration onto a lattice using 2nd order
- * extrapolation. Box must be square. Repeated application adds
- * the new configuration on top of the old.
- * @param[in] frame input configuration
- * @param[out] lattice array that stores the lattice
- * @param[in] side_length linear size of the lattice
- * @param[out] velocity_lattice array that stores the velocity lattice
+ * Projects a configuration onto a lattice using second-order
+ * extrapolation.
+ * The closer a particle is to a lattice site the higher its contribution to
+ * the lattice site's density.
+ * The box must be cubic.
+ * Repeated application adds the new configuration on top of the old.
+ * @param[in] frame Input configuration.
+ * @param[out] lattice Array that stores the lattice.
+ * @param[in] side_length Number of lattice sites in one direction.
+ * @param[out] velocity_lattice Optional array that stores the velocity lattice.
+ * @param[in] Dimension of the configuration (either 2 or 3).
  */
 double read_lattice(const Frame & frame, double *lattice, 
         const size_t side_length, Real3D *velocity_lattice=nullptr, 
@@ -1293,10 +1515,11 @@ double read_lattice(const Frame & frame, double *lattice,
 }
 
 /**
- * Read 3d lattice from file. Lattice must be cubic.
- * @param[in] filename input file name
- * @param[out] lattice array that stores the lattice
- * @param[in] side_length linear size of the lattice
+ * Read a lattice from file. Lattice must be cubic.
+ * @param[in] filename Input file name.
+ * @param[out] lattice Array that stores the lattice.
+ * @param[in] side_length Linear size of the lattice.
+ * @return Total lattice density which is equal to the particle number.
  */
 double read_lattice(const char * filename, double *lattice, 
         const size_t side_length, size_t dim=3)
@@ -1360,10 +1583,14 @@ double read_lattice(const char * filename, double *lattice,
 }
 
 
+/** Write lattice configuration to disk.
+ * @param[in] f Frame to get the lattice from.
+ * @param[in] filename Output filename.
+ * @param[in] side_length Number of lattice sites in one direction.
+ */
 void write_lattice(const Frame & f, const char* filename, 
         const size_t side_length)
 {
-    // write lattice configuration to disk
     double * lattice = new double[side_length*side_length*side_length]{0.};
     read_lattice(f, lattice, side_length);
 
@@ -1376,9 +1603,12 @@ void write_lattice(const Frame & f, const char* filename,
 /**
  * Calculate the Structure factor S(q) from the Fourier transform of the
  * lattice density.
- * @param[in] lattice_transformed Fourier transformation of a density lattice
- * @param[in] side_length linear size of the lattice
- * @param[in] lattice_constant lattice constant
+ * This gives the structure factor depending on the VECTOR q. 
+ * From this a histogram is produced where each bin contains the average
+ * structure factor for a certain range of absolute values of q.
+ * @param[in] lattice_transformed Fourier transformation of a density lattice.
+ * @param[in] side_length Number of lattice sites in one direction.
+ * @param[in] lattice_constant Lattice constant.
  * @param[in] bin_width bin width of the q values
  * @return vector of pairs (q, S(q)).
  */
@@ -1522,21 +1752,18 @@ std::vector<std::array<double, 2>> linearize_lattice
     return result;
 }
 
-/**
- * Implementation for frame or file as input
- * 
- * Calculate the structure factor of a frame.
+/*
+ * Calculate the structure factor of a Frame object or input file.
  * The configuration is first mapped to a density map on a lattice. Then a
- * Fourier transform of the lattice is performed. This gives the structure
- * factor depending on VECTOR q. The lattice is then linearized to obtain
- * the dependence on the absolute value of q.
+ * Fourier transform of the lattice is performed. 
+ * From this, S(q) is calculated in form of a histogram.
  * @param[in] input Input lattice configuration. This can either be an array or
  * a filename.
- * @param[in] bin_width bin width
- * @param[in] side_length linear lattice size
- * @param[in] lattice_constant lattice constant
- * @param[in] bin_width bin width
- * @param[in] norm normalization constant
+ * @param[in] bin_width Bin width of the q-bins.
+ * @param[in] side_length Linear size of the lattice.
+ * @param[in] lattice_constant Lattice constant.
+ * @param[in] bin_width Bin width.
+ * @param[in] norm Normalization constant.
  * @return vector of pairs (q, S(q)).
  */
 template<typename T>
@@ -1562,24 +1789,8 @@ structure_factor(const T input, const size_t side_length, const double
     return sfac;
 }
 
-/**
- * Implementation for lattice as input. This is an explicit template
- * specialization for the case T=double*. Here we do not need
- * to specify default arguments as they are adopted from the general
- * implementation.
- *
- * Calculate the structure factor of a frame.
- * A Fourier transform of the lattice is performed. This gives the structure
- * factor depending on VECTOR q. The lattice is then linearized to obtain
- * the dependence on the absolute value of q.
- * @param[in] input configuration that has been mapped onto a lattice
- * a filename.
- * @param[in] bin_width bin width
- * @param[in] side_length linear lattice size
- * @param[in] lattice_constant lattice constant
- * @param[in] bin_width bin width
- * @param[in] norm normalization constant
- * @return vector of pairs (q, S(q)).
+/*
+ * This is an explicit template specialization for the case T=double*.
  */
 template<>
 std::vector<std::array<double, 2>> structure_factor<double*>
@@ -1620,8 +1831,8 @@ std::vector<std::array<double, 2>> structure_factor<double*>
 
 /**
  * Calculate the exact structure factor for given wave vector q
- * @param[in] frame input configuration
- * @param[in] q wave vector
+ * @param[in] frame Input Frame.
+ * @param[in] q wave vector.
  * @return S(q)
  */
 double structure_factor(const Frame & frame, const Real3D q)
@@ -1645,10 +1856,10 @@ double structure_factor(const Frame & frame, const Real3D q)
 /**
  * Compute the set of lattice vectors that lie within a spherical shell of
  * certain thickness.
- * @param[in] radius radius of shell
- * @param[in] thickness thickness of shell
- * @param[in] lattice_constant lattice constant
- * @return list of vectors
+ * @param[in] radius Radius of shell.
+ * @param[in] thickness Thickness of shell.
+ * @param[in] lattice_constant Lattice constant.
+ * @return List of vectors.
  */
 std::vector<Real3D> lattice_vectors_inside_shell(const double radius,
         const double thickness, const double lattice_constant)
@@ -1689,10 +1900,10 @@ std::vector<Real3D> lattice_vectors_inside_shell(const double radius,
  * All lattice vectors in a shell of thickness lattice_constant around q are
  * considered if there are less than n_rand. If there are more, n_rand vectors
  * are chosen at random.
- * @param[in] frame
- * @param[in] q absolute value of vave vector to consider
- * @param[in] n_rand number of random orientations to consider
- * @return vector of tuples (<q>, <S(q)>, \sigma(q))
+ * @param[in] frame Input Frame.
+ * @param[in] q Absolute value of vave vector to consider.
+ * @param[in] n_rand Number of random orientations to consider.
+ * @return Vector of tuples (<q>, <S(q)>, \sigma(q)).
  */
 std::vector<double>  mean_structure_factor(const Frame & frame, const double q,
         const size_t n_rand = 128)
@@ -1760,11 +1971,12 @@ std::vector<double>  mean_structure_factor(const Frame & frame, const double q,
  *
  * @param[in] input Input lattice configuration either as Frame or
  * filename const char *
- * @param[in] side_length linear lattice size of the interpolation lattice
- * @param[in] threshold lattice sites with density >= threshold will be
+ * @param[in] side_length Linear lattice size of the interpolation lattice.
+ * @param[in] threshold Lattice sites with density >= threshold will be
  * interpreted as 'black'.
- * @param[in] natural_units normalize results by appropriate power of
- * side_length in order to make it dimensionless
+ * @param[in] natural_units Normalize results by appropriate power of
+ * side_length in order to make it dimensionless.
+ * @return std::array of the 6 Minkowski functionals
  */
 template<typename T>
 std::array<double, 6> minkowski_functionals(const T input, 
@@ -1790,30 +2002,6 @@ std::array<double, 6> minkowski_functionals(const T input,
 }
 
 
-/**
- * Calculate Minkowski functionals (MFs)in 3 dimensions:
- * V_0: volume
- * V_1: area
- * V_2: mean curvature (4n)
- * V_3: mean curvature (8n)
- * V_4: Euler-Poincare characteristic (6n)
- * V_5: Euler-Poincare characteristic 26n)
- * The configuration is first mapped onto a black and white lattice. Each
- * cell-center of the lattice has 8 neighbors. Hence there are 2^8 different
- * neighborhoods. The MFs are additive and rotationally invariant. By symmetry
- * the number of neighborhoods that are unique wrt. the MFs reduces to 22.
- * The MFs are computed in the lattice centers.
- *
- * See paper Arns, Knackstedt, Pinczewski, Mecke Phys. Rev. E 63 2001
- *
- * @param[in] input Input lattice configuration either as Frame or
- * filename const char *
- * @param[in] side_length linear lattice size of the interpolation lattice
- * @param[in] threshold lattice sites with density >= threshold will be
- * interpreted as 'black'.
- * @param[in] natural_units normalize results by appropriate power of
- * side_length in order to make it dimensionless
- */
 template<>
     std::array<double, 6> minkowski_functionals<double*>
 (double* const lattice, const size_t side_length, const double threshold, 

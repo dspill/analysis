@@ -8,8 +8,8 @@
 #include <sstream>
 #include <iomanip>
 
-/** @file mctimeseries.hpp 
- * Container for multi column timeseries
+/* @file mctimeseries.hpp 
+ * Container for multi column timeseries.
  */
 
 template<typename T>

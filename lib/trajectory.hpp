@@ -4,12 +4,16 @@
 #include "frame.hpp"
 #include <list>
 
-/*!
- * Reader class to read trajectory files. 
+/** @file trajectory.hpp */
+
+/**
+ * The Trajectory class is a reader class to read trajectory files given by
+ * concatenated xyz configurations.
+ * As the simulations often produce huge files a focus is put on efficiency.
  * Supported formats:
  * .xyz
- * Class can be used like a forward iterator. Dereferencing returns the current
- * Frame object.
+ * The class can be used like a forward iterator. 
+ * Dereferencing returns the current Frame object.
  */
 class Trajectory
 {
@@ -18,7 +22,7 @@ class Trajectory
         size_t _index{0}; //!< current frame index
         size_t _particles_per_molecule{0}; //!< number of particles in one molecule
         Frame _frame; //!< current configuration
-        double _timestep{0.}; //!< timestep between consecutive frames
+        double _timestep{0.}; //!< timestep between consecutive Frames
         mutable size_t _frames_read{0};
         std::string _last_string;
 
@@ -51,8 +55,15 @@ class Trajectory
         }
 
     public:
-        Trajectory(const Trajectory&) = delete; // disable copy constructor
+        /** Disable copy constructor. */
+        Trajectory(const Trajectory&) = delete; 
 
+        /** Construct Trajectory reader on given file. 
+         * @param[in] filename Input file name.
+         * @param[in] particles_per_molecule Number of particles in one
+         * molecule.
+         * @param[in] offset Number of Frames to be skipped in the beginning.
+         */
         Trajectory(const std::string & filename,
                 size_t particles_per_molecule = 0, size_t offset = 0):
             _stream(std::ifstream(filename)),
@@ -65,11 +76,12 @@ class Trajectory
             advance(offset);
         }
 
-        // getter
+        /** Check whether trajectory is unreadable. */
         bool is_null() const {
             return !is_good();
         }
 
+        /** Check whether trajectory is readable. */
         bool is_good() const {
             return _stream.good();
         }
@@ -78,17 +90,23 @@ class Trajectory
             return is_good() && _stream.peek() != EOF;
         }
 
+        /** @return Current frame index. */
         size_t index() const {return _index;}
 
+        /** @return The number of frames that have already been read. */
         size_t frames_read() const {return _frames_read;}
 
+        /** @return Current frame on top of the Trajectory. */
         const Frame & frame() const 
         {
             return _frame;
         }
 
+
+        /** @return Time step. */
         double timestep() const {return _timestep;}
 
+        /** @return Molecule size. */
         size_t particles_per_molecule() const
         {
             if(_particles_per_molecule == 0)
@@ -97,6 +115,7 @@ class Trajectory
                 return _particles_per_molecule;
         }
 
+        /** @return Number of molecules in the system. */
         size_t number_of_molecules() const
         {
             if(frame().size() == 0)
@@ -105,6 +124,10 @@ class Trajectory
                 return frame().size() / particles_per_molecule();
         }
 
+        /** @return Total number of Frames. 
+         * Warning: The complete Trajectory must be iterated to find this
+         * number. 
+         * Depending on the size this might take a while. */
         size_t size()
         {
             const size_t start_index = index();
@@ -117,7 +140,7 @@ class Trajectory
             return length;
         }
 
-        // manipulation
+        /** Clear the Trajectory. */
         void reset()
         {
             _stream.clear();                 // clear fail and eof bits
@@ -137,6 +160,7 @@ class Trajectory
             return _stream.tellg();
         }
 
+        /** Jump ahead a given number of Frames. */
         void advance(const size_t number=1)
         {
             if(!clear_ahead() || number == 0) return;
@@ -164,6 +188,7 @@ class Trajectory
             ++_index;
         }
 
+        /** Go to last Frames. */
         void go_to_last_frame()
         {
             if(!clear_ahead()) return;
@@ -176,6 +201,18 @@ class Trajectory
             move_to(pos);
         }
 
+        /**
+         * Advance the Trajectory in a way that is given by command line
+         * arguments.
+         * --offset gives the number of Frames to skip in the beginning.
+         * --max gives the highest Frame index to be considdered.
+         * --step gives the step size. I.e. for a step of 2 only every second
+         *  Frame is read.
+         * Alternatively the step size can be increased exponentially with the
+         * --exp argument.
+         * @param[in] argc Length of argument array.
+         * @param[in] argv Command line argument array.
+         */
         void loop_advance(int argc, char **argv)
         {
             size_t offset = static_cast<size_t>(
@@ -225,6 +262,7 @@ class Trajectory
             return;
         }
 
+        /** Move to frame with given inded. */
         void move_to(const size_t number)
         {
             _stream.clear();                 // clear fail and eof bits
@@ -251,8 +289,10 @@ class Trajectory
         }
 
         // operators
-        Trajectory & operator=(const Trajectory&) = delete; // disable assign
+        /** Disable assign operator. */
+        Trajectory & operator=(const Trajectory&) = delete; 
 
+        /** Dereferencing the Trajectory returns the frame currently on top. */
         Frame operator*() const {return frame();} // dereference
 
         //const Frame * operator->() const {return &_frame;}
@@ -267,6 +307,7 @@ class Trajectory
             return frame;
         }
 
+        /** Advance by one frame. */
         Trajectory & operator++() // prefix
         {
             advance();
@@ -279,6 +320,7 @@ class Trajectory
             return *this;
         }
 
+        /** Print info. */
         friend std::ostream & operator<<(std::ostream & os,
                 const Trajectory & trajectory)
         {
@@ -297,6 +339,11 @@ class Trajectory
         }
 
         // analysis
+        /* Calculate average of the function f for all Molecules in all
+         * following Frames. 
+         * @param[in] f Function of Molecule.
+         * @param[in] step Number of frames to advance each step.
+         */
         template <typename T>
             double mean(T (Molecule::*f)(void), size_t step = 1)
             {
@@ -309,6 +356,12 @@ class Trajectory
                 return m / index();
             }
 
+        /** Generate Timeseries object where the data points are calculated
+         * from the following frames with function f.
+         * @param[in] f Function of Frame.
+         * @param[in] step Number of frames to advance each step.
+         * @param[max] max Highest index to consider.
+         */
         template <typename T>
             Timeseries<T> timeseries(T (Frame::*f)(void), size_t step = 1,
                     size_t max = std::numeric_limits<int>::max())
@@ -323,13 +376,6 @@ class Trajectory
                 return Timeseries<T>(data);
             }
 
-        /**
-         * @param[in] f function that produces observable of interest
-         * @param[in] step only process every step'th frame
-         * @param[in] max maximum frame to process
-         * @return timeseries where each timestep contains a vector of
-         * observables f (for each molecule)
-         */
         template <typename T>
             Timeseries<std::vector<T>> timeseries(T (Molecule::*f)(void), 
                     size_t step = 1,
@@ -345,12 +391,6 @@ class Trajectory
                 return Timeseries<std::vector<T>>(data);
             }
 
-        /**
-         * @param[in] step only process every step'th frame
-         * @param[in] max maximum frame to process
-         * @return set oftimeseries where each timestep contains a vector of
-         * observables f (for each molecule)
-         */
         std::vector<Timeseries<std::vector<Real3D>>> 
             timeseries_set(
                     std::vector<Real3D (Molecule::*)()> vofp =
@@ -383,13 +423,6 @@ class Trajectory
                 return data;
             }
 
-        /**
-         * @param[in] f function that produces observable of interest
-         * @param[in] step only process every step'th frame
-         * @param[in] max maximum frame to process
-         * @return timeseries where each timestep contains the value of f
-         * averaged over all molecules
-         */
         template <typename T>
             Timeseries<T> timeseries_mean(T (Molecule::*f)(void), 
                     size_t step = 1,

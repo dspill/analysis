@@ -20,19 +20,19 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. 
    */
 
-// ESPP_CLASS
 #ifndef _REAL3D_HPP
 #define _REAL3D_HPP
 
-//#include "types.hpp"
 #include <cmath>
 #include <ostream>
 #include <assert.h>
 
-//namespace espressopp {
+/** @file Real3D.hpp */
 
-//////////////////////////////////////////////////
-// Real3D
+/** This class is based on the Real3D class provided by ESPResSo++.
+ * It models a 3-dimensional vector and includes among others some useful
+ * operations such as addition and scalar product between vectors.
+ */
 class Real3D {
     double data[3];
 

@@ -7,6 +7,13 @@
 #include <sstream>
 #include <iomanip>
 
+/** @file timeseries.hpp */
+
+/** The Timeseries class stores a time series of data points and contains some
+ * functions for their analysis.
+ * A data point can be a vector of points as well as the type is templated.
+ * A time step, initial time and a comment can be given.
+ */
 template<typename T>
 class Timeseries
 {
@@ -46,6 +53,11 @@ class Timeseries
             stream.close();
         }
 
+        /* Read Timeseries from infile stream given a column. 
+         * Lines starting with '#' are skipped.
+         * @param[in] column Column of interest.
+         * @param[in] offset Optional number of lines to skip.
+         */
         void read(std::ifstream & stream, size_t column = 1, size_t offset = 0)
         {
             double previous = 0;
@@ -93,6 +105,12 @@ class Timeseries
             return;
         }
 
+        /* Read Timeseries from all columns of an infile stream. 
+         * For each time step a vector of doubles is stored.
+         * Lines starting with '#' are skipped.
+         * @param[in] column Column of interest.
+         * @param[in] offset Optional number of lines to skip.
+         */
         void read_all(std::ifstream & stream, size_t offset = 0)
         {
             std::string str;
@@ -120,14 +138,19 @@ class Timeseries
             return;
         }
 
+        /** @return The total number of data points. */
         size_t size() const {return _data.size();}
 
+        /** @return The timestep that is set. */
         double timestep() const {return _timestep;}
 
+        /** @return The comment that is set. */
         std::string comment() const {return _comment;}
 
+        /** @return The initial time that is set. */
         double initial_time() const {return _initial_time;}
 
+        /** @return Append new value to the end of the Timeseries. */
         void push_back(T val)
         {
             _data.push_back(val);
@@ -138,6 +161,7 @@ class Timeseries
             _data.emplace_back(val);
         }
 
+        /** Set the timestep. */
         void set_timestep(double timestep) {_timestep = timestep;}
 
         void set_comment(std::string comment)
@@ -145,6 +169,7 @@ class Timeseries
             _comment = comment;
         }
 
+        /** Set the initial time. */
         void set_initial_time(double initial_time) {_initial_time = initial_time;}
 
         double time(const int step) const
@@ -152,17 +177,22 @@ class Timeseries
             return _initial_time + step * _timestep;
         }
 
+        /** @return Constant reference to first data piont in form of an
+         * iterator.  */
         typename std::vector<T>::const_iterator begin() const
         {
             return _data.begin();
         }
 
+        /** @return Constant reference to last data piont in form of an
+         * iterator.  */
         typename std::vector<T>::const_iterator end() const
         {
             return _data.end();
         }
 
         // analysis
+        /* @return Average value of data points. */
         T mean() const
         {
             auto it = begin();
@@ -177,6 +207,7 @@ class Timeseries
             return mean / size();
         }
 
+        /* @return Standard deviation of data points. */
         T stdev() const
         {
             double mean = this->mean();
@@ -187,6 +218,10 @@ class Timeseries
             return stdev;
         }
 
+        /* Calculates the average autocorrelation function between data points
+         * that are a certain number of steps apart.
+         * @param[in] Number of steps between data points.
+         * @return Autocorrelation function. */
         double autocorrelation_function(size_t span) const
         {
             if(span > size())
@@ -214,6 +249,7 @@ class Timeseries
         }
 
         // operators
+        /** Print info. */
         friend std::ostream & operator<<(std::ostream & os,
                 const Timeseries & timeseries)
         {
@@ -221,6 +257,7 @@ class Timeseries
             return os;
         }
 
+        /** Add a second timeseries to the current element wise. */
         Timeseries & operator+=(const Timeseries &ts)
         {
             assert(this->size() == ts.size());
@@ -228,6 +265,7 @@ class Timeseries
             return *this;
         }
 
+        /** Add two Timeseries element wise. */
         Timeseries operator+(const Timeseries &ts) const
         {
             Timeseries ts2 = *this;
@@ -235,6 +273,7 @@ class Timeseries
             return ts2;
         }
 
+        /** Substract two Timeseries element wise. */
         Timeseries & operator-=(const Timeseries &ts)
         {
             assert(this->size() == ts.size());
@@ -242,6 +281,7 @@ class Timeseries
             return *this;
         }
 
+        /** Substract a second Timeseries from the current element wise. */
         Timeseries operator-(const Timeseries &ts) const
         {
             Timeseries ts2 = *this;
@@ -249,12 +289,14 @@ class Timeseries
             return ts2;
         }
 
-        // multiplication by scalar
+        /** Multiply current Timeseries element wise by a scalar. */
         Timeseries & operator*=(const double a)
         {
             this->_data *= a;
             return *this;
         }
+        
+        /** Multiply two Timeseries element wise by a scalar. */
         Timeseries operator*(const double a)
         {
             Timeseries ts2 = *this;
@@ -262,13 +304,14 @@ class Timeseries
             return ts2;
         }
 
-        // division by scalar
+        /** Divide current Timeseries element wise by a scalar. */
         Timeseries & operator/=(const double a)
         {
             this->_data /= a;
             return *this;
         }
 
+        /** Divide two Timeseries element wise by a scalar. */
         Timeseries operator/(const double a)
         {
             Timeseries ts2 = *this;
@@ -277,13 +320,15 @@ class Timeseries
         }
 
         // equality
-        // TODO timestep etc
+        /** Test whether the data points of two Timeseries are equal by value.
+         */
         bool operator==(const Timeseries &ts) const {
             assert(this->size() == ts.size());
             return std::equal(this->begin(), this->end(), ts.begin());
         }
 
-
+        /** Test whether the data points of two Timeseries are not equal by
+         * value.  */
         bool operator!=(const Timeseries &ts) const {
             return !(*this == ts);
         }
@@ -315,6 +360,7 @@ class Timeseries
         }
 
 
+        /** Write Timeseries to file. */
         void write(const char * filename) const
         {
             constexpr size_t precision = 11;
@@ -341,6 +387,7 @@ class Timeseries
             return;
         }
 
+        /** Clear all data from Timeseries. */
         void clear()
         {
             _data.clear();

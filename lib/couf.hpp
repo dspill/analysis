@@ -1,6 +1,5 @@
 #ifndef _COUF_HPP
 #define _COUF_HPP
-/* Collection of Useful Functions */
 #include <cstdint>
 #include <filesystem>
 #include <cmath>
@@ -17,33 +16,32 @@
 #include "Real3D.hpp"
 
 //namespace fs = std::filesystem;
+/** @file couf.hpp */
+/** This file contains a collection of useful functions that are used at
+ * various places in this project.
+ */
 
 namespace couf
 {
-    //bool is_directory(const fs::path& p, fs::file_status s=fs::file_status{})
-    //{
-        //if(fs::status_known(s) ? fs::exists(s) : fs::exists(p))
-            //return true;
-
-        //return false;
-    //}
-
-    bool is_directory(const char* pzPath )
+    /** 
+     * @param[in] path Path to check
+     * @returns True if the directory exists */
+    bool is_directory(const char* path )
     {
-        if (pzPath == NULL) return false;
+        if (path == NULL) return false;
 
-        DIR *pDir;
-        bool bExists = false;
+        DIR *dir;
+        bool exists = false;
 
-        pDir = opendir (pzPath);
+        dir = opendir (path);
 
-        if (pDir != NULL)
+        if (dir != NULL)
         {
-            bExists = true;    
-            (void) closedir (pDir);
+            exists = true;    
+            (void) closedir (dir);
         }
 
-        return bExists;
+        return exists;
     }
 
     int my_assert(bool condition)
@@ -52,7 +50,6 @@ namespace couf
         else throw std::runtime_error("assertion failed");
     }
 
-    /* folding */
     double fold(const double coordinate, const double box_length)
     {
         if(box_length == 0.) return 0.;
@@ -99,6 +96,12 @@ namespace couf
         return dist;
     }
 
+    /** Calculate minimum-image distance between two coordinates taking into
+     * account periodic boundary conditions.
+     * @param[in] c1 First coordinate.
+     * @param[in] c2 Second coordinate.
+     * @param[in] box Box dimensions.
+     */
     Real3D minimal_distance(const Real3D c1, const Real3D c2, const Real3D box)
     {
         double x, y, z;
@@ -110,7 +113,7 @@ namespace couf
         return Real3D(x, y, z);
     }
 
-    /* write 3d table to file */
+    /** Write 3d table to file. */
     void write_3d_array_to_file(const double *array, const char *filename,
             const size_t n_x, size_t n_y = 0, size_t n_z = 0)
     {
@@ -136,6 +139,7 @@ namespace couf
         fclose(pFile);
     }
 
+    /** Write 3d table of 3d vectors to file. */
     void write_3d_Real3D_array_to_file(const Real3D *array, 
             const char *filename, const size_t n_x, size_t n_y = 0, size_t n_z = 0)
     {
@@ -163,7 +167,7 @@ namespace couf
         fclose(pFile);
     }
 
-    /* write table to file */
+    /** Write vector to file. */
     void write_to_file(const std::vector<double> &table, const char *filename) 
     {
         FILE *pFile;
@@ -178,7 +182,9 @@ namespace couf
         return;
     }
 
-    void write_to_file(const std::vector<std::vector<double> > &table, const char *filename) 
+    /** Write vector of vectors to file. */
+    void write_to_file(const std::vector<std::vector<double> > &table, const
+            char *filename) 
     {
         FILE *pFile;
         pFile = fopen(filename, "w");
@@ -197,8 +203,10 @@ namespace couf
         return;
     }
 
+    /** Write array of arrays to file. */
     template<size_t size>
-        void write_to_file(const std::vector<std::array<double, size> > &table, const char *filename) 
+        void write_to_file(const std::vector<std::array<double, size> > &table,
+                const char *filename) 
         {
             FILE *pFile;
             pFile = fopen(filename, "w");
@@ -217,7 +225,7 @@ namespace couf
             return;
         }
 
-    /* write 2d row-major array to file */
+    /** Write 2d row-major array to file */
     void write_to_file(const double *array, const int n_row,
             const int n_col, const char *filename) 
     {
@@ -237,7 +245,7 @@ namespace couf
         fclose(pFile);
     }
 
-    /* write 2d row-major array to file */
+    /** Write 2d row-major array to file */
     void write_to_file(const Real3D *array, const int n_row,
             const int n_col, const char *filename) 
     {
@@ -258,9 +266,10 @@ namespace couf
         fclose(pFile);
     }
 
+
+    /** @return The biggest power of two, that is smaller than number */
     int next_lower_power_of_two(int number)
     {
-        /* returns the biggest power of two, that is smaller than number */
         int test = 1;
         while(test < number)
         {
@@ -269,8 +278,15 @@ namespace couf
         return test / 2;
     }
 
-    // parse argv
-    const char *parse_arguments(const int argc, char **argv, const char *indicator, const char *def="0")
+    /** Parse command line arguments.
+     * @param[in] argc Number of arguments.
+     * @param[in] argv Argument array.
+     * @param[in] indicator Letter after the '-' defining the argument flag.
+     * @param[in] def Default value to return if argument not found.
+     * @return The string corresponding to the argument flag.
+     */
+    const char *parse_arguments(const int argc, char **argv, const char
+            *indicator, const char *def="0")
     {
         int iarg = 1;
         while(iarg < argc)
@@ -302,6 +318,7 @@ namespace couf
         printf("\n");
     }
 
+    /** Test whether some argument is given. */
     bool is_given(const int argc, char **argv, const char *indicator)
     {
         bool tag = false;
@@ -309,16 +326,6 @@ namespace couf
         while(iarg < argc) if(strcmp(argv[iarg++], indicator) == 0) tag = true;
         return tag;
     }
-
-    //double minimum(double x1, double x2)
-    //{
-    //return x1 < x2 ? x1 : x2;
-    //}
-
-    //double maximum(double x1, double x2)
-    //{
-    //return x1 > x2 ? x1 : x2;
-    //}
 
     /* compare functions for sorting with e.g. qsort()*/
     static int compare(const void * a, const void * b)
@@ -328,20 +335,14 @@ namespace couf
         else return 0;
     }
 
-    //static int vcompare_full(const std::vector<double> a , const std::vector<double>  b)
-    //{
-    //if (a[0] > b[0]) return 1;
-    //else if (a[0] < b[0]) return -1;
-    //else return 0;
-    //}
-
     // compare vectors by first element
     bool vcompare (const std::vector<double> a , const std::vector<double>  b)
     {
         return (a[0] < b[0]);
     }
 
-    /* sum over exponentials in logarithmic representation */
+    /** Sum over exponentials in logarithmic representation while minimizing
+     * rounding errors. */
     double logsumexp(double *exponents, int length)
     {
         int i;
@@ -363,7 +364,7 @@ namespace couf
         return exponents[length - 1] + log1pl( q );
     }
 
-    /* convert rad to angle (circle with circumference length) */
+    /** Convert rad to angle (circle with circumference length) */
     double to_angle(double length, double rad)
     {
         double angle;
@@ -381,90 +382,17 @@ namespace couf
         return angle;
     }
 
-    /* round properly to next integer */
+    /** Round properly to next integer */
     int round_positive_nymnber(double dbl)
     {
         return (int) (dbl + .5);
     }
 
+    /** Round properly to next integer */
     int round_negative_number(double dbl)
     {
         return (int) (dbl - .5);
     }
-
-    //int round(double dbl)
-    //{
-    //if(dbl >= 0) return (int) (dbl + .5);
-    //else return (int) (dbl - .5);
-    //}
-
-    /* solve LSE via Gauss Algorithm */
-    //const int n_points = 10;
-    //void gsolve(double m[][n_points - 1], double *b, double *x, int n_points)
-    //{
-    //int step, i, j, k, lne;
-    //double factor, temp;
-
-    //for(step = 0; step < n_points; ++step)
-    //{
-    //[> move rows with leading zeros to the beginning <]
-    //for(i = 0; i < n_points; ++i)
-    //{
-    //if(m[i][step] == 0)
-    //{
-    //[> for every column... <]
-    //for(j = step; j < n_points; ++j)
-    //{
-    //temp = m[i][j];
-
-    //[> ...move preceding values in said column one up <]
-    //for(k = i; k > 0; --k)
-    //{
-    //m[k][j] = m[k - 1][j];
-    //}
-    //m[0][j] = temp;
-    //}
-    //temp = b[i];
-
-    //for(k = i; k > 0; --k)
-    //{
-    //b[k] = b[k - 1];
-    //}
-    //b[0] = temp;
-    //}
-    //}
-
-    //[> produce triangular form <]
-    //for(i = 0; i < n_points - step - 1; ++i)
-    //{
-    //if(m[i][step] != 0)
-    //{
-    //factor = m[i][step] / m[i + 1][step];
-
-    ////m[i][step] = 0.; <- not really necessary
-    ////step + 1
-    //for(j = step; j < n_points; ++j)
-    //{
-    //m[i][j] -= factor * m[i + 1][j];
-    //}
-    //b[i] -= factor * b[i + 1];
-    //}
-    //}
-    //}
-
-    //[> get solutions from triangular form <]
-    //for(i = n_points - 1; i >= 0; --i)
-    //{
-    //lne = n_points - i - 1;
-    //x[i] = b[lne];
-
-    //for(j = i + 1; j < n_points; ++j)
-    //{
-    //x[i] -= m[lne][j] * x[j];
-    //}
-    //x[i] /= m[lne][i];
-    //}
-    //}
 
     void print_vector_matrix(std::vector< std::vector<double> > A)
     {
@@ -527,7 +455,7 @@ namespace couf
         return x;
     }
 
-    /* signum */
+    /** @return Sign of value */
     template <typename T> int sgn(T val)
     {
         return (T(0) < val) - (val < T(0));
@@ -566,14 +494,14 @@ namespace couf
         return data;
     }
 
-    /* gets number of characters in buffer */
+    /** @return Number of characters in a buffer. */
     unsigned int FileRead(std::istream &is, std::vector<char> &buff) 
     {
         is.read(&buff[0], buff.size());
         return is.gcount();
     }
 
-    /* count lines in a buffer */
+    /* @return Number of lines in a buffer. */
     unsigned int CountLines(const std::vector<char> &buff, int sz) 
     {
         int newlines = 0;
@@ -586,7 +514,7 @@ namespace couf
         return newlines;
     }
 
-    /* count lines in a file */
+    /** Count lines in a file in an effective way. */
     int fast_count_lines(const char* filename) 
     {
         const int SZ = 1024 * 1024;
@@ -601,7 +529,7 @@ namespace couf
         return n;
     }
 
-    /* count noncommented, nonempty lines in a file */
+    /** Count noncommented, nonempty lines in a file. */
     int count_lines(const char* filename)
     {
         size_t n = 0;
@@ -623,6 +551,7 @@ namespace couf
         return n;
     }
 
+    /** Count number of columns of some textfile. */
     int count_columns(const char* filename)
     {
         std::ifstream ifs(filename);
@@ -643,7 +572,7 @@ namespace couf
         return n;
     }
 
-    /* binomial coefficient  */
+    /** Calculate the binomial coefficient  */
     template <class T = unsigned long>
         T binomial_coefficient(unsigned long n, unsigned long k) {
             unsigned long i;
@@ -669,13 +598,14 @@ namespace couf
             return b;
         }
 
-    /* average of a vector */
+    /** Calculate the average of a vector. */
     template <typename T>
         T mean(std::vector<T> v)
         {
             return std::accumulate(v.begin(), v.end(), .0) / v.size();
         }
 
+    /** Calculate the standard deviation of a vector. */
     template <typename T>
         T stddev(std::vector<T> v)
         {
