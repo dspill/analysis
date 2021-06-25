@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     }
 
     /* loop through frames */
-    cout << traj;
+    //cout << traj;
     while(!traj.is_null())
     {
         cout << "reading frame " << traj.index() << '\n';

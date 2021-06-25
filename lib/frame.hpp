@@ -359,11 +359,12 @@ class Frame
         /** @return Number of molecules in the system. */
         size_t number_of_molecules() const
         {
-            if(size() == 0)
-                return 0;
+            if(size() == 0) return 0;
             else
+            {
                 assert(size() % particles_per_molecule() == 0);
                 return size() / particles_per_molecule();
+            }
         }
 
         /** @return Const-iterator of coordinate vector start. */
@@ -1141,7 +1142,7 @@ class Frame
             stream << "POINTS " << size() << " float\n";
 
             // write particle coordinates
-            for(const Real3D coordinate : _coordinates)
+            for(Real3D coordinate : _coordinates)
                 stream << coordinate << '\n';
 
             // write bonds
@@ -1522,18 +1523,21 @@ double read_lattice(const Frame & frame, double *lattice,
  * @return Total lattice density which is equal to the particle number.
  */
 double read_lattice(const char * filename, double *lattice, 
-        const size_t side_length, size_t dim=3)
+        const size_t side_length, Real3D *velocity_lattice=nullptr, 
+        const size_t dim=3)
 {
+    (void) velocity_lattice; // does nothing
     /* read lattice from datafile with format:
      * i_x i_y i_z density */
     std::ifstream instream(filename);
     if (!instream) throw std::runtime_error("Could not open input file\n");
 
-    int index = 0;
+    size_t index = 0;
     double norm = 0.;
     double val;
     std::string str;
     std::string buf;
+    const size_t number_of_sites = pow(side_length, dim);
 
     /* read the lattice from file */
     if(dim == 2)
@@ -1543,9 +1547,16 @@ double read_lattice(const char * filename, double *lattice,
             std::stringstream ss(str);
             while(ss >> buf)
             {
+                if(index >= number_of_sites)
+                {
+                    std::cerr << "WARNING: Lattice index out of bound.\n";
+                    continue;
+                }
                 val = stof(buf);
-                lattice[index++] = val;
+                lattice[index] = val;
                 norm += val;
+
+                index += 1;
             }
         }
     }
@@ -1567,6 +1578,11 @@ double read_lattice(const char * filename, double *lattice,
             ss >> buf;
 
             index = k + side_length * j + pow(side_length, 2) * i;
+            if(index >= number_of_sites)
+            {
+                std::cerr << "WARNING: Lattice index out of bound.\n";
+                continue;
+            }
             lattice[index] = val;
         }
     }
@@ -1576,8 +1592,6 @@ double read_lattice(const char * filename, double *lattice,
     if(norm <= 0.)
         std::cerr << "WARNING: System seems to be empty or has negative density\n";
 
-    if(index != pow(side_length, dim) - 1)
-        throw std::runtime_error("Wrong lattice size given\n");
 
     return norm;
 }
@@ -1632,7 +1646,7 @@ std::vector<std::array<double, 2>> linearize_lattice
     else if(bw < q_0)
         throw std::runtime_error("Bin-size is too small");
 
-    const int n_bins = ceil(q_max / bw);
+    const int n_bins = ceil(q_max / bw) + 1;
     double *histogram = new double[n_bins]();
     double *abscissa  = new double[n_bins]();
     int *count        = new int[n_bins]();
@@ -1663,12 +1677,14 @@ std::vector<std::array<double, 2>> linearize_lattice
 
                 if(q < q_max)
                 {
+                    bin = (int) (q / bw) + 1;
+                    /* trivial mode */
                     if(i == 0 && j == 0)
                     {
-                        std::cout << "S: " << S << ", q: " << q << '\n';
-                        continue;
+                        std::cout << "S(q=qmin) = " << S << ", qmin = " << q << '\n';
+                        bin = 0;
+                        //continue;
                     }
-                    bin = (int) (q / bw);
                     histogram[bin] += S;
                     abscissa[bin]  += q;
                     ++count[bin];
@@ -1712,13 +1728,14 @@ std::vector<std::array<double, 2>> linearize_lattice
 
                     if(q < q_max)
                     {
-                        bin = (int) (q / bw);
+                        bin = (int) (q / bw) + 1;
                         assert(bin >= 0 && bin < n_bins);
-                        /* skip trivial mode */
+
+                        /* trivial mode */
                         if(i == 0 && j == 0 && k == 0)
                         {
-                            std::cout << "S: " << S << ", q: " << q << '\n';
-                            continue;
+                            bin = 0;
+                            std::cout << "S(q=qmin) = " << S << ", qmin = " << q << '\n';
                         }
                         histogram[bin] += S;
                         abscissa[bin]  += q;
@@ -1735,16 +1752,13 @@ std::vector<std::array<double, 2>> linearize_lattice
     result.reserve(n_bins + 1); 
     for(int i = 0; i < n_bins; ++i)
     {
-        if(count[i] > 0){
-            // tuple[0] = abscissa[i] / count[i]; // TODO average abscissa
-            result.push_back(std::array<double, 2>{
-                    bw * (i + 0.5),
-                    histogram[i] / count[i]});
-        }
-        else
-        {
-            result.push_back(std::array<double, 2>{ bw * (i + 0.5), 0. });
-        }
+        if(i == 0) q = 0;
+        else q = bw * (i + 0.5);
+
+        if(count[i] > 0) S = histogram[i] / count[i];
+        else S = 0;
+
+        result.push_back(std::array<double, 2>{q, S});
     }
     delete[] histogram;
     delete[] abscissa;
@@ -1769,7 +1783,7 @@ std::vector<std::array<double, 2>> linearize_lattice
 template<typename T>
 std::vector<std::array<double, 2>>
 structure_factor(const T input, const size_t side_length, const double
-        lattice_constant, const double bin_width=0.1, const double norm=1.,
+        lattice_constant, const double bin_width=0.1, const double norm=0.,
         const size_t dim=3)
 {
     if(typeid(T) != typeid(Frame) && typeid(T) != typeid(const char *))
@@ -1781,10 +1795,12 @@ structure_factor(const T input, const size_t side_length, const double
     std::fill(lattice, lattice + number_of_sites, 0.);
 
     /* read lattice with function that is suitable for type of input */
-    read_lattice(input, lattice, side_length, nullptr, dim);
+    const double mean_density = read_lattice(input, lattice, side_length, nullptr, dim);
+    double new_norm = norm;
+    if(norm == 0.) new_norm = pow(mean_density, 2);
 
     std::vector<std::array<double, 2>> sfac =  structure_factor(lattice,
-            side_length, lattice_constant, bin_width, norm, dim);
+            side_length, lattice_constant, bin_width, new_norm, dim);
     fftw_free(lattice);
     return sfac;
 }
